@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36429.23 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Fourth Protocol Project", "Fourth Protocol Project\Fourth Protocol Project.vcxproj", "{CBB5AC8F-E739-4533-AB5E-B780E09D4570}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CBB5AC8F-E739-4533-AB5E-B780E09D4570}.Debug|x64.ActiveCfg = Debug|x64
+		{CBB5AC8F-E739-4533-AB5E-B780E09D4570}.Debug|x64.Build.0 = Debug|x64
+		{CBB5AC8F-E739-4533-AB5E-B780E09D4570}.Debug|x86.ActiveCfg = Debug|Win32
+		{CBB5AC8F-E739-4533-AB5E-B780E09D4570}.Debug|x86.Build.0 = Debug|Win32
+		{CBB5AC8F-E739-4533-AB5E-B780E09D4570}.Release|x64.ActiveCfg = Release|x64
+		{CBB5AC8F-E739-4533-AB5E-B780E09D4570}.Release|x64.Build.0 = Release|x64
+		{CBB5AC8F-E739-4533-AB5E-B780E09D4570}.Release|x86.ActiveCfg = Release|Win32
+		{CBB5AC8F-E739-4533-AB5E-B780E09D4570}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {D67BB149-32F4-4561-8430-543CE5347F37}
+	EndGlobalSection
+EndGlobal
