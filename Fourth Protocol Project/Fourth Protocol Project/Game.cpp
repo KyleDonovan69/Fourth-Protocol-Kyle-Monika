@@ -60,6 +60,17 @@ void Game::processKeys(const std::optional<sf::Event> t_event)
 	{
 		m_DELETEexitGame = true;
 	}
+	if (sf::Keyboard::Key::R == newKeypress->code)//resets all texts and players
+	{
+		if (m_grid.getGameState() == GameState::GAME_OVER)
+		{
+			m_grid.resetGame();
+			updatePlayerText();
+			updatePieceCountText();
+			updateGameStateText();
+			updateWinnerText();
+		}
+	}
 	if (sf::Keyboard::Key::Num1 == newKeypress->code)
 	{
 		m_grid.setSelectedPiece(PieceType::FROG);
@@ -87,9 +98,11 @@ void Game::processMouse(const std::optional<sf::Event> t_event)
 		int row, col;
 		if (m_grid.getCellFromMouse(mousePos, row, col))
 		{
-			m_grid.placePiece(row, col);
+			m_grid.handleClick(row, col);//clicking pieces + movement
 			updatePlayerText();
 			updatePieceCountText();
+			updateGameStateText();
+			updateWinnerText();
 		}
 	}
 }
@@ -123,6 +136,13 @@ void Game::render()
 	m_window.draw(m_playerText);
 	m_window.draw(m_pieceCountText);
 	m_window.draw(m_selectedPieceText);
+	m_window.draw(m_gameStateText);
+
+	if (m_grid.getGameState() == GameState::GAME_OVER)
+	{
+		m_window.draw(m_winnerText);
+		m_window.draw(m_restartText);
+	}
 
 	m_window.display();
 }
@@ -135,36 +155,66 @@ void Game::setupTexts()
 		std::cout << "problem loading Jersey20 font" << std::endl;
 	}
 
-	// Setup title text
+	// Setup title text at top
 	m_titleText.setString("The Fourth Protocol");
-	m_titleText.setCharacterSize(40U);
+	m_titleText.setCharacterSize(45U);
 	m_titleText.setOutlineColor(sf::Color::Black);
 	m_titleText.setFillColor(sf::Color::White);
 	m_titleText.setOutlineThickness(2.0f);
 
 	sf::FloatRect titleBounds = m_titleText.getLocalBounds();
 	m_titleText.setOrigin(sf::Vector2f(titleBounds.size.x / 2.0f, titleBounds.size.y / 2.0f));
-	m_titleText.setPosition(sf::Vector2f(WINDOW_WIDTH / 2.0f, 25.0f));
+	m_titleText.setPosition(sf::Vector2f(WINDOW_WIDTH / 2.0f, 30.0f));
 
-	// Setup player text
+	// Setup player text at bottom
 	m_playerText.setFillColor(sf::Color::White);
-	m_playerText.setCharacterSize(30U);
+	m_playerText.setCharacterSize(25U);
+	m_playerText.setOutlineColor(sf::Color::Black);
+	m_playerText.setOutlineThickness(2.0f);
 	updatePlayerText();
 	sf::FloatRect playerBounds = m_playerText.getLocalBounds();
 	m_playerText.setOrigin(sf::Vector2f(playerBounds.size.x / 2.0f, playerBounds.size.y / 2.0f));
-	m_playerText.setPosition(sf::Vector2f(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT - 30.0f));
+	m_playerText.setPosition(sf::Vector2f(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT - 40.0f));
 
-	// Setup piece count text
+	// Setup piece count text on left side
 	m_pieceCountText.setPosition(sf::Vector2f(10.0f, 80.0f));
 	m_pieceCountText.setFillColor(sf::Color::White);
 	m_pieceCountText.setCharacterSize(25U);
+	m_pieceCountText.setOutlineColor(sf::Color::Black);
+	m_pieceCountText.setOutlineThickness(2.0f);
 	updatePieceCountText();
 
-	// Setup selected piece text
-	m_selectedPieceText.setPosition(sf::Vector2f(10.0f, 250.0f));
+	// Shows what piece is selected
+	m_selectedPieceText.setPosition(sf::Vector2f(10.0f, 450.0f));
 	m_selectedPieceText.setFillColor(sf::Color::Yellow);
 	m_selectedPieceText.setCharacterSize(25U);
+	m_selectedPieceText.setOutlineColor(sf::Color::Black);
+	m_selectedPieceText.setOutlineThickness(2.0f);
 	updateSelectedPieceText();
+
+	// State text
+	m_gameStateText.setPosition(sf::Vector2f(WINDOW_WIDTH - 250.0f, 80.0f));
+	m_gameStateText.setFillColor(sf::Color::Cyan);
+	m_gameStateText.setCharacterSize(25U);
+	m_gameStateText.setOutlineColor(sf::Color::Black);
+	m_gameStateText.setOutlineThickness(2.0f);
+	updateGameStateText();
+
+	m_winnerText.setCharacterSize(60U);//displays whoever won
+	m_winnerText.setFillColor(sf::Color::Yellow);
+	m_winnerText.setOutlineColor(sf::Color::Black);
+	m_winnerText.setOutlineThickness(3.0f);
+	updateWinnerText();
+
+	// Setup restart text for the endgame
+	m_restartText.setString("Press R to Restart");
+	m_restartText.setCharacterSize(30U);
+	m_restartText.setFillColor(sf::Color::White);
+	m_restartText.setOutlineColor(sf::Color::Black);
+	m_restartText.setOutlineThickness(2.0f);
+	sf::FloatRect restartBounds = m_restartText.getLocalBounds();
+	m_restartText.setOrigin(sf::Vector2f(restartBounds.size.x / 2.0f, restartBounds.size.y / 2.0f));
+	m_restartText.setPosition(sf::Vector2f(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f + 100.0f));
 }
 
 void Game::updatePlayerText()
@@ -221,6 +271,55 @@ void Game::updateSelectedPieceText()
 	}
 
 	m_selectedPieceText.setString("Selected: " + selectedName);
+}
+
+void Game::updateGameStateText()
+{
+	if (m_grid.getGameState() == GameState::PLACEMENT)
+	{
+		m_gameStateText.setString("PLACEMENT PHASE");
+	}
+	else if (m_grid.getGameState() == GameState::MOVEMENT)
+	{
+		m_gameStateText.setString("MOVEMENT PHASE");
+	}
+	else
+	{
+		m_gameStateText.setString("GAME OVER");
+	}
+}
+
+void Game::updateWinnerText()
+{
+	if (m_grid.getGameState() == GameState::GAME_OVER)
+	{
+		Player winner = m_grid.getWinner();
+		std::string winnerStr;
+		sf::Color winnerColor;
+
+		if (winner == Player::PLAYER_ONE)
+		{
+			winnerStr = "PLAYER 1 (RED) WINS!";
+			winnerColor = sf::Color::Red;
+		}
+		else if (winner == Player::PLAYER_TWO)
+		{
+			winnerStr = "PLAYER 2 (BLUE) WINS!";
+			winnerColor = sf::Color::Blue;
+		}
+		else
+		{
+			winnerStr = "TIE!";
+			winnerColor = sf::Color::Yellow;
+		}
+
+		m_winnerText.setString(winnerStr);
+		m_winnerText.setFillColor(winnerColor);
+
+		sf::FloatRect winnerBounds = m_winnerText.getLocalBounds();
+		m_winnerText.setOrigin(sf::Vector2f(winnerBounds.size.x / 2.0f, winnerBounds.size.y / 2.0f));
+		m_winnerText.setPosition(sf::Vector2f(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f));
+	}
 }
 
 std::string Game::getSelectedPieceName() const

@@ -3,7 +3,11 @@
 Grid::Grid() :
     m_selectedPiece(PieceType::FROG),
     m_currentPlayer(Player::PLAYER_ONE),
-    m_font(nullptr)
+    m_font(nullptr),
+    m_gameState(GameState::PLACEMENT),
+    m_selectedRow(-1),
+    m_selectedCol(-1),
+    m_pieceSelected(false)
 {
     for (int i = 0; i < 4; ++i)
     {
@@ -53,10 +57,25 @@ void Grid::setupGrid()
         for (int col = 0; col < GRID_SIZE; col++)
         {
             m_cells[row][col].setSize(sf::Vector2f(CELL_SIZE - 2.0f, CELL_SIZE - 2.0f));
-            m_cells[row][col].setPosition(sf::Vector2f( START_X + col * CELL_SIZE, START_Y + row * CELL_SIZE ));
-            m_cells[row][col].setFillColor(sf::Color(240, 240, 240));
-            m_cells[row][col].setOutlineThickness(2.0f);
-            m_cells[row][col].setOutlineColor(sf::Color(100, 100, 100));
+            m_cells[row][col].setPosition(sf::Vector2f(START_X + col * CELL_SIZE, START_Y + row * CELL_SIZE));
+
+            // Checkerboard look to it now
+            if ((row + col) % 2 == 0)
+            {
+                m_cells[row][col].setFillColor(sf::Color(245, 245, 245));
+            }
+            else
+            {
+                m_cells[row][col].setFillColor(sf::Color(220, 220, 220));
+            }
+
+            m_cells[row][col].setOutlineThickness(1.0f);
+            m_cells[row][col].setOutlineColor(sf::Color(180, 180, 180));
+
+            // highlights any squares for moves
+            m_highlightCells[row][col].setSize(sf::Vector2f(CELL_SIZE - 2.0f, CELL_SIZE - 2.0f));
+            m_highlightCells[row][col].setPosition(sf::Vector2f(START_X + col * CELL_SIZE, START_Y + row * CELL_SIZE));
+            m_highlightCells[row][col].setFillColor(sf::Color(100, 255, 100, 0));
         }
     }
 }
@@ -65,7 +84,7 @@ void Grid::loadFont(const sf::Font& t_font)
 {
     m_font = const_cast<sf::Font*>(&t_font);
 
-    // Create text objects for all grid positions
+    // Create texts for pieces
     for (int row = 0; row < GRID_SIZE; ++row)
     {
         for (int col = 0; col < GRID_SIZE; ++col)
@@ -141,7 +160,7 @@ void Grid::setupPiece(int t_row, int t_col, PieceType t_type, Player t_player)
     m_board[t_row][t_col].owner = t_player;
 
     // Setup circle shape
-    m_board[t_row][t_col].shape.setRadius(35.0f);
+    m_board[t_row][t_col].shape.setRadius(38.0f);
     sf::Vector2f cellPos = m_cells[t_row][t_col].getPosition();
     m_board[t_row][t_col].shape.setPosition(sf::Vector2f(cellPos.x + 15.0f, cellPos.y + 15.0f));
 
@@ -205,7 +224,14 @@ void Grid::placePiece(int t_row, int t_col)
 
     setupPiece(t_row, t_col, m_selectedPiece, m_currentPlayer);
     getPieceCount(m_currentPlayer, m_selectedPiece)++;
+
+    if (checkForWin())
+    {
+        return;
+    }
+
     switchPlayer();
+    swapToMovement();
 }
 
 void Grid::switchPlayer()
@@ -218,6 +244,7 @@ void Grid::switchPlayer()
     {
         m_currentPlayer = Player::PLAYER_ONE;
     }
+    clearHighlights();
 }
 
 void Grid::setSelectedPiece(PieceType t_type)
@@ -235,9 +262,47 @@ Player Grid::getCurrentPlayer() const
     return m_currentPlayer;
 }
 
+GameState Grid::getGameState() const
+{
+    return m_gameState;
+}
+
 PieceType Grid::getSelectedPiece() const
 {
     return m_selectedPiece;
+}
+
+Player Grid::getWinner() const
+{
+    return m_winner;
+}
+
+void Grid::resetGame()
+{
+    m_gameState = GameState::PLACEMENT;
+    m_winner = Player::NONE;
+    m_currentPlayer = Player::PLAYER_ONE;
+    m_selectedPiece = PieceType::FROG;
+    m_pieceSelected = false;
+    m_selectedRow = -1;
+    m_selectedCol = -1;
+
+    // Reset piece counters
+    for (int i = 0; i < 4; ++i)
+    {
+        m_playerOnePieces[i] = 0;
+        m_playerTwoPieces[i] = 0;
+    }
+
+    // Clear board
+    for (int row = 0; row < GRID_SIZE; ++row)
+    {
+        for (int col = 0; col < GRID_SIZE; ++col)
+        {
+            m_board[row][col].type = PieceType::NONE;
+            m_board[row][col].owner = Player::NONE;
+        }
+    }
 }
 
 int Grid::getRemainingPieces(Player t_player, PieceType t_type) const
@@ -272,6 +337,13 @@ void Grid::draw(sf::RenderWindow& t_window)
             t_window.draw(m_cells[row][col]);
         }
     }
+    for (int row = 0; row < GRID_SIZE; ++row)
+    {
+        for (int col = 0; col < GRID_SIZE; ++col)
+        {
+            t_window.draw(m_highlightCells[row][col]);
+        }
+    }
 
     // Draw pieces and labels
     for (int row = 0; row < GRID_SIZE; ++row)
@@ -292,7 +364,7 @@ void Grid::draw(sf::RenderWindow& t_window)
 
 bool Grid::getCellFromMouse(sf::Vector2f t_mousePos, int& t_row, int& t_col)
 {
-    const float GRID_TOTAL_SIZE = GRID_SIZE * CELL_SIZE;
+    const float GRID_TOTAL_SIZE = GRID_SIZE * CELL_SIZE;//finds cell clicked
     const float START_X = (WINDOW_WIDTH - GRID_TOTAL_SIZE) / 2.0f;
     const float START_Y = (WINDOW_HEIGHT - GRID_TOTAL_SIZE) / 2.0f;
 
@@ -300,4 +372,286 @@ bool Grid::getCellFromMouse(sf::Vector2f t_mousePos, int& t_row, int& t_col)
     t_row = static_cast<int>((t_mousePos.y - START_Y) / CELL_SIZE);
 
     return (t_row >= 0 && t_row < GRID_SIZE && t_col >= 0 && t_col < GRID_SIZE);
+}
+
+void Grid::swapToMovement()
+{
+    // Check if all pieces have been placed
+    if (getTotalPiecesRemaining(Player::PLAYER_ONE) == 0 &&
+        getTotalPiecesRemaining(Player::PLAYER_TWO) == 0)
+    {
+        m_gameState = GameState::MOVEMENT;
+    }
+}
+
+void Grid::handleClick(int t_row, int t_col)
+{
+    if (m_gameState == GameState::GAME_OVER)
+    {
+        return; // No more moves allowed
+    }
+
+    if (m_gameState == GameState::PLACEMENT)
+    {
+        placePiece(t_row, t_col);
+    }
+    else if (m_gameState == GameState::MOVEMENT)
+    {
+        if (m_pieceSelected)
+        {
+            // Try to move selected piece
+            if (isValidMove(m_selectedRow, m_selectedCol, t_row, t_col))
+            {
+                movePiece(m_selectedRow, m_selectedCol, t_row, t_col);
+                deselectPiece();
+                if (m_gameState != GameState::GAME_OVER)
+                {
+                    switchPlayer();
+                }
+            }
+            else
+            {
+                // invalid move, try a new piece
+                deselectPiece();
+                selectPiece(t_row, t_col);
+            }
+        }
+        else
+        {
+            // Select piece
+            selectPiece(t_row, t_col);
+        }
+    }
+}
+
+void Grid::selectPiece(int t_row, int t_col)
+{
+    if (!isValidPosition(t_row, t_col))
+    {
+        return;
+    }
+
+    // Check if there's a players piece at this position
+    if (m_board[t_row][t_col].type != PieceType::NONE &&
+        m_board[t_row][t_col].owner == m_currentPlayer)
+    {
+        m_selectedRow = t_row;
+        m_selectedCol = t_col;
+        m_pieceSelected = true;
+
+        // Highlight selected piece
+        m_board[t_row][t_col].shape.setOutlineColor(sf::Color::Yellow);
+        m_board[t_row][t_col].shape.setOutlineThickness(5.0f);
+
+        highlightAvailableMoves(t_row, t_col);
+    }
+}
+
+void Grid::deselectPiece()
+{
+    if (m_pieceSelected)
+    {
+        // Reset outline
+        m_board[m_selectedRow][m_selectedCol].shape.setOutlineColor(sf::Color::Black);
+        m_board[m_selectedRow][m_selectedCol].shape.setOutlineThickness(3.0f);
+
+        m_pieceSelected = false;
+        m_selectedRow = -1;
+        m_selectedCol = -1;
+    }
+}
+
+void Grid::highlightAvailableMoves(int t_row, int t_col)
+{
+    // Clear previous highlights
+    clearHighlights();
+
+    // Check all cells on the board for valid moves
+    for (int row = 0; row < GRID_SIZE; ++row)
+    {
+        for (int col = 0; col < GRID_SIZE; ++col)
+        {
+            if (isValidMove(t_row, t_col, row, col))
+            {
+                // Highlight this cell
+                m_highlightCells[row][col].setFillColor(sf::Color(100, 255, 100, 120));
+            }
+        }
+    }
+}
+
+void Grid::clearHighlights()
+{
+    for (int row = 0; row < GRID_SIZE; ++row)
+    {
+        for (int col = 0; col < GRID_SIZE; ++col)
+        {
+            m_highlightCells[row][col].setFillColor(sf::Color(0, 0, 0, 0)); // Fully transparent
+        }
+    }
+}
+
+bool Grid::checkForWin()//4 in a row check
+{
+    Player playerToCheck = m_currentPlayer;
+
+    for (int row = 0; row < GRID_SIZE; ++row)//horizontal lines
+    {
+        for (int col = 0; col <= GRID_SIZE - 4; ++col)
+        {
+            if (checkLine(row, col, 0, 1, playerToCheck))
+            {
+                m_winner = playerToCheck;
+                m_gameState = GameState::GAME_OVER;
+                return true;
+            }
+        }
+    }
+
+    
+    for (int row = 0; row <= GRID_SIZE - 4; ++row)// vertical lines
+    {
+        for (int col = 0; col < GRID_SIZE; ++col)
+        {
+            if (checkLine(row, col, 1, 0, playerToCheck))
+            {
+                m_winner = playerToCheck;
+                m_gameState = GameState::GAME_OVER;
+                return true;
+            }
+        }
+    }
+
+    // Check diagonal lines (top-left to bottom-right)
+    for (int row = 0; row <= GRID_SIZE - 4; ++row)
+    {
+        for (int col = 0; col <= GRID_SIZE - 4; ++col)
+        {
+            if (checkLine(row, col, 1, 1, playerToCheck))
+            {
+                m_winner = playerToCheck;
+                m_gameState = GameState::GAME_OVER;
+                return true;
+            }
+        }
+    }
+
+    // Check diagonal lines (top-right to bottom-left)
+    for (int row = 0; row <= GRID_SIZE - 4; ++row)
+    {
+        for (int col = 3; col < GRID_SIZE; ++col)
+        {
+            if (checkLine(row, col, 1, -1, playerToCheck))
+            {
+                m_winner = playerToCheck;
+                m_gameState = GameState::GAME_OVER;
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+bool Grid::checkLine(int t_startRow, int t_startCol, int t_rowDir, int t_colDir, Player t_player) const
+{
+    for (int i = 0; i < 4; ++i)//checks the 4 in a row to see if its all one players
+    {
+        int row = t_startRow + i * t_rowDir;
+        int col = t_startCol + i * t_colDir;
+
+        if (m_board[row][col].owner != t_player)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+void Grid::movePiece(int t_fromRow, int t_fromCol, int t_toRow, int t_toCol)
+{
+    PieceType type = m_board[t_fromRow][t_fromCol].type;//copies piece data
+    Player owner = m_board[t_fromRow][t_fromCol].owner;
+
+    m_board[t_fromRow][t_fromCol].type = PieceType::NONE;
+    m_board[t_fromRow][t_fromCol].owner = Player::NONE;
+
+    // show it in new pos
+    setupPiece(t_toRow, t_toCol, type, owner);
+
+    checkForWin();
+}
+
+bool Grid::isValidMove(int t_fromRow, int t_fromCol, int t_toRow, int t_toCol) const
+{
+    if (!isValidPosition(t_fromRow, t_fromCol) || !isValidPosition(t_toRow, t_toCol))
+    {
+        return false;
+    }
+
+    // Can't move to occupied square
+    if (m_board[t_toRow][t_toCol].type != PieceType::NONE)
+    {
+        return false;
+    }
+
+    // Check piece-specific movements
+    PieceType pieceType = m_board[t_fromRow][t_fromCol].type;
+
+    return canPieceMove(pieceType, t_fromRow, t_fromCol, t_toRow, t_toCol);
+}
+
+
+bool Grid::canPieceMove(PieceType t_type, int t_fromRow, int t_fromCol, int t_toRow, int t_toCol) const
+{
+    int rowDiff = abs(t_toRow - t_fromRow);
+    int colDiff = abs(t_toCol - t_fromCol);
+
+    switch (t_type)
+    {
+    case PieceType::DONKEY:
+        // Donkey moves 1 space in cardinal directions
+        return (rowDiff == 1 && colDiff == 0) || (rowDiff == 0 && colDiff == 1);
+
+    case PieceType::SNAKE:
+        // Snake moves 1 space in any direction
+        return (rowDiff <= 1 && colDiff <= 1) && (rowDiff + colDiff > 0);
+
+    case PieceType::FROG:
+    {
+        // Frog can move 1 space in any direction
+        if ((rowDiff <= 1 && colDiff <= 1) && (rowDiff + colDiff > 0))
+        {
+            return true;
+        }
+
+        // Frog can also jump over pieces
+        if (rowDiff == 0 || colDiff == 0 || rowDiff == colDiff)
+        {
+            int rowStep = (t_toRow > t_fromRow) ? 1 : ((t_toRow < t_fromRow) ? -1 : 0);
+            int colStep = (t_toCol > t_fromCol) ? 1 : ((t_toCol < t_fromCol) ? -1 : 0);
+
+            int currentRow = t_fromRow + rowStep;
+            int currentCol = t_fromCol + colStep;
+            bool foundPiece = false;
+
+            while (currentRow != t_toRow || currentCol != t_toCol)
+            {
+                if (m_board[currentRow][currentCol].type != PieceType::NONE)
+                {
+                    foundPiece = true;
+                }
+                currentRow += rowStep;
+                currentCol += colStep;
+            }
+
+            // Valid jump if at least one piece to jump over
+            return foundPiece;
+        }
+        return false;
+    }
+
+    default:
+        return false;
+    }
 }

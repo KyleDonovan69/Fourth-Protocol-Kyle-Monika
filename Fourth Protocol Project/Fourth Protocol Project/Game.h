@@ -30,6 +30,8 @@ private:
 	void updatePlayerText();
 	void updatePieceCountText();
 	void updateSelectedPieceText();
+	void updateGameStateText();
+	void updateWinnerText();
 
 	std::string getSelectedPieceName() const;
 
@@ -39,6 +41,9 @@ private:
 	sf::Text m_playerText{ m_jerseyFont };
 	sf::Text m_pieceCountText{ m_jerseyFont };
 	sf::Text m_selectedPieceText{ m_jerseyFont };
+	sf::Text m_gameStateText{ m_jerseyFont };
+	sf::Text m_winnerText{ m_jerseyFont };
+	sf::Text m_restartText{ m_jerseyFont };
 
 	bool m_DELETEexitGame;
 	Grid m_grid;
