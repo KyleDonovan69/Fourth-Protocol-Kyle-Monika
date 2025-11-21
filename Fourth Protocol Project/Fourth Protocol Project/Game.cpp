@@ -3,7 +3,12 @@
 
 Game::Game() :
 	m_window{ sf::VideoMode{ sf::Vector2u{WINDOW_WIDTH, WINDOW_HEIGHT}, 32U }, "SFML Game 3.0" },
-	m_DELETEexitGame{ false }
+	m_DELETEexitGame{ false },
+	m_menu(m_jerseyFont),
+	m_gameMode(GameMode::NONE),
+	m_showMenu(true),
+	m_aiWaiting(false),
+	m_aiDelaySeconds(1.0f)
 {
 	setupTexts();
 	m_grid.loadFont(m_jerseyFont); // Share font with grid
@@ -65,26 +70,40 @@ void Game::processKeys(const std::optional<sf::Event> t_event)
 		if (m_grid.getGameState() == GameState::GAME_OVER)
 		{
 			m_grid.resetGame();
-			updatePlayerText();
-			updatePieceCountText();
-			updateGameStateText();
-			updateWinnerText();
+			updateAllUI();
+			m_grid.clearHighlights();
 		}
 	}
-	if (sf::Keyboard::Key::Num1 == newKeypress->code)
+	if (sf::Keyboard::Key::M == newKeypress->code)
 	{
-		m_grid.setSelectedPiece(PieceType::FROG);
-		updateSelectedPieceText();
+		if (m_grid.getGameState() == GameState::GAME_OVER)
+		{
+			m_grid.resetGame();
+			m_gameMode = GameMode::NONE;
+			m_showMenu = true;
+			m_aiWaiting = false;
+
+			updateAllUI();
+			m_grid.clearHighlights();
+		}
 	}
-	if (sf::Keyboard::Key::Num2 == newKeypress->code)
+	if (!m_aiWaiting && m_grid.getGameState() != GameState::GAME_OVER)
 	{
-		m_grid.setSelectedPiece(PieceType::SNAKE);
-		updateSelectedPieceText();
-	}
-	if (sf::Keyboard::Key::Num3 == newKeypress->code)
-	{
-		m_grid.setSelectedPiece(PieceType::DONKEY);
-		updateSelectedPieceText();
+		if (sf::Keyboard::Key::Num1 == newKeypress->code)
+		{
+			m_grid.setSelectedPiece(PieceType::FROG);
+			updateSelectedPieceText();
+		}
+		if (sf::Keyboard::Key::Num2 == newKeypress->code)
+		{
+			m_grid.setSelectedPiece(PieceType::SNAKE);
+			updateSelectedPieceText();
+		}
+		if (sf::Keyboard::Key::Num3 == newKeypress->code)
+		{
+			m_grid.setSelectedPiece(PieceType::DONKEY);
+			updateSelectedPieceText();
+		}
 	}
 
 }
@@ -95,14 +114,40 @@ void Game::processMouse(const std::optional<sf::Event> t_event)
 	if (sf::Mouse::Button::Left == mouseClick->button)
 	{
 		sf::Vector2f mousePos = m_window.mapPixelToCoords(mouseClick->position);
-		int row, col;
-		if (m_grid.getCellFromMouse(mousePos, row, col))
+
+		if (m_showMenu)
 		{
-			m_grid.handleClick(row, col);//clicking pieces + movement
-			updatePlayerText();
-			updatePieceCountText();
-			updateGameStateText();
-			updateWinnerText();
+			m_menu.handleClick(mousePos);
+			if (m_menu.isModeSelected())
+			{
+				m_gameMode = m_menu.getSelectedMode();
+				m_showMenu = false;
+			}
+		}
+		else
+		{
+			bool canClick = !m_aiWaiting && m_grid.getGameState() != GameState::GAME_OVER;
+			
+			if (m_gameMode == GameMode::PLAYER_VS_AI)
+			{
+				// only allow clicks when it's Player 1 turn
+				canClick = canClick && (m_grid.getCurrentPlayer() == Player::PLAYER_ONE);
+			}
+			if (canClick)
+			{
+				int row, col;
+				if (m_grid.getCellFromMouse(mousePos, row, col))
+				{
+					m_grid.handleClick(row, col);//clicking pieces + movement
+					updateAllUI();
+
+					if (m_gameMode == GameMode::PLAYER_VS_AI && m_grid.getCurrentPlayer() == Player::PLAYER_TWO && m_grid.getGameState() != GameState::GAME_OVER)
+					{
+						m_aiWaiting = true;
+						m_aiClock.restart();
+					}
+				}
+			}
 		}
 	}
 }
@@ -124,6 +169,12 @@ void Game::update(sf::Time t_deltaTime)
 	{
 		m_window.close();
 	}
+
+	if (m_aiWaiting && m_aiClock.getElapsedTime().asSeconds() >= m_aiDelaySeconds)
+	{
+		m_aiWaiting = false;
+		handleAITurn();
+	}
 }
 
 
@@ -131,20 +182,36 @@ void Game::render()
 {
 	m_window.clear(ULTRAMARINE);
 
-	m_grid.draw(m_window);
-	m_window.draw(m_titleText);
-	m_window.draw(m_playerText);
-	m_window.draw(m_pieceCountText);
-	m_window.draw(m_selectedPieceText);
-	m_window.draw(m_gameStateText);
-
-	if (m_grid.getGameState() == GameState::GAME_OVER)
+	if (m_showMenu)
 	{
-		m_window.draw(m_winnerText);
-		m_window.draw(m_restartText);
+		m_menu.draw(m_window);
+	}
+	else
+	{
+		m_grid.draw(m_window);
+		m_window.draw(m_titleText);
+		m_window.draw(m_playerText);
+		m_window.draw(m_pieceCountText);
+		m_window.draw(m_selectedPieceText);
+		m_window.draw(m_gameStateText);
+
+		if (m_grid.getGameState() == GameState::GAME_OVER)
+		{
+			m_window.draw(m_winnerText);
+			m_window.draw(m_restartText);
+			m_window.draw(m_menuText);
+		}
 	}
 
 	m_window.display();
+}
+
+void Game::handleAITurn()
+{
+	m_ai.makeMove(m_grid);
+
+	// update UI
+	updateAllUI();
 }
 
 
@@ -215,6 +282,15 @@ void Game::setupTexts()
 	sf::FloatRect restartBounds = m_restartText.getLocalBounds();
 	m_restartText.setOrigin(sf::Vector2f(restartBounds.size.x / 2.0f, restartBounds.size.y / 2.0f));
 	m_restartText.setPosition(sf::Vector2f(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f + 100.0f));
+
+	m_menuText.setString("Press M to Return to Menu");
+	m_menuText.setCharacterSize(30U);
+	m_menuText.setFillColor(sf::Color::White);
+	m_menuText.setOutlineColor(sf::Color::Black);
+	m_menuText.setOutlineThickness(2.0f);
+	sf::FloatRect menuBounds = m_menuText.getLocalBounds();
+	m_menuText.setOrigin(sf::Vector2f(menuBounds.size.x / 2.0f, menuBounds.size.y / 2.0f));
+	m_menuText.setPosition(sf::Vector2f(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f + 150.0f));
 }
 
 void Game::updatePlayerText()
@@ -320,6 +396,14 @@ void Game::updateWinnerText()
 		m_winnerText.setOrigin(sf::Vector2f(winnerBounds.size.x / 2.0f, winnerBounds.size.y / 2.0f));
 		m_winnerText.setPosition(sf::Vector2f(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f));
 	}
+}
+
+void Game::updateAllUI()
+{
+	updatePlayerText();
+	updatePieceCountText();
+	updateGameStateText();
+	updateWinnerText();
 }
 
 std::string Game::getSelectedPieceName() const

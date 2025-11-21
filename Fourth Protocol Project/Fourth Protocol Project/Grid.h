@@ -58,6 +58,11 @@ public:
     Player getWinner() const;
     void resetGame();
 
+    bool isCellEmpty(int t_row, int t_col) const;
+    Player getCellOwner(int t_row, int t_col) const;
+    bool canPieceMoveTo(int t_fromRow, int t_fromCol, int t_toRow, int t_toCol) const;
+    void clearHighlights();
+
 private:
     sf::RectangleShape m_cells[GRID_SIZE][GRID_SIZE];
     Piece m_board[GRID_SIZE][GRID_SIZE];
@@ -100,7 +105,7 @@ private:
     bool isValidMove(int t_fromRow, int t_fromCol, int t_toRow, int t_toCol) const;
     
     void highlightAvailableMoves(int t_row, int t_col);
-    void clearHighlights();
+    
 
     bool checkForWin();
     bool checkLine(int t_startRow, int t_startCol, int t_rowDir, int t_colDir, Player t_player) const;

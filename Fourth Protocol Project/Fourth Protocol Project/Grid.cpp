@@ -305,6 +305,29 @@ void Grid::resetGame()
     }
 }
 
+bool Grid::isCellEmpty(int t_row, int t_col) const
+{
+    if (!isValidPosition(t_row, t_col))
+    {
+        return false;
+    }
+    return m_board[t_row][t_col].type == PieceType::NONE;
+}
+
+Player Grid::getCellOwner(int t_row, int t_col) const
+{
+    if (!isValidPosition(t_row, t_col))
+    {
+        return Player::NONE;
+    }
+    return m_board[t_row][t_col].owner;
+}
+
+bool Grid::canPieceMoveTo(int t_fromRow, int t_fromCol, int t_toRow, int t_toCol) const
+{
+    return isValidMove(t_fromRow, t_fromCol, t_toRow, t_toCol);
+}
+
 int Grid::getRemainingPieces(Player t_player, PieceType t_type) const
 {
     if (t_type == PieceType::NONE)

@@ -7,6 +7,8 @@
 #include <SFML/Audio.hpp>
 #include "Grid.h"
 #include "Constants.h"
+#include "Menu.h"
+#include "AI.h"
 
 const sf::Color ULTRAMARINE{ 5, 55, 242, 255 };
 
@@ -26,12 +28,16 @@ private:
 	void update(sf::Time t_deltaTime);
 	void render();
 
+	void handleAITurn();
+
 	void setupTexts();
 	void updatePlayerText();
 	void updatePieceCountText();
 	void updateSelectedPieceText();
 	void updateGameStateText();
 	void updateWinnerText();
+
+	void updateAllUI();
 
 	std::string getSelectedPieceName() const;
 
@@ -44,9 +50,19 @@ private:
 	sf::Text m_gameStateText{ m_jerseyFont };
 	sf::Text m_winnerText{ m_jerseyFont };
 	sf::Text m_restartText{ m_jerseyFont };
+	sf::Text m_menuText{ m_jerseyFont };
 
 	bool m_DELETEexitGame;
 	Grid m_grid;
+	Menu m_menu;
+
+	AI m_ai;
+	sf::Clock m_aiClock;
+	bool m_aiWaiting;
+	float m_aiDelaySeconds;
+
+	GameMode m_gameMode;
+	bool m_showMenu;
 };
 
 #pragma warning( pop ) 
