@@ -60,8 +60,12 @@ public:
 
     bool isCellEmpty(int t_row, int t_col) const;
     Player getCellOwner(int t_row, int t_col) const;
+	PieceType getPieceType(int t_row, int t_col) const;
     bool canPieceMoveTo(int t_fromRow, int t_fromCol, int t_toRow, int t_toCol) const;
     void clearHighlights();
+
+    void setPiece(int t_row, int t_col, PieceType t_type, Player t_owner);//use these for testing moves first
+    void clearCell(int t_row, int t_col);
 
 private:
     sf::RectangleShape m_cells[GRID_SIZE][GRID_SIZE];
@@ -106,7 +110,6 @@ private:
     
     void highlightAvailableMoves(int t_row, int t_col);
     
-
     bool checkForWin();
     bool checkLine(int t_startRow, int t_startCol, int t_rowDir, int t_colDir, Player t_player) const;
 };

@@ -323,6 +323,15 @@ Player Grid::getCellOwner(int t_row, int t_col) const
     return m_board[t_row][t_col].owner;
 }
 
+PieceType Grid::getPieceType(int t_row, int t_col) const
+{
+    if (!isValidPosition(t_row, t_col))
+    {
+        return PieceType::NONE;
+    }
+    return m_board[t_row][t_col].type;
+}
+
 bool Grid::canPieceMoveTo(int t_fromRow, int t_fromCol, int t_toRow, int t_toCol) const
 {
     return isValidMove(t_fromRow, t_fromCol, t_toRow, t_toCol);
@@ -434,14 +443,13 @@ void Grid::handleClick(int t_row, int t_col)
             }
             else
             {
-                // invalid move, try a new piece
+                // cant do that move, try another
                 deselectPiece();
                 selectPiece(t_row, t_col);
             }
         }
         else
         {
-            // Select piece
             selectPiece(t_row, t_col);
         }
     }
@@ -454,7 +462,7 @@ void Grid::selectPiece(int t_row, int t_col)
         return;
     }
 
-    // Check if there's a players piece at this position
+    // Check if there's a piece at this position
     if (m_board[t_row][t_col].type != PieceType::NONE &&
         m_board[t_row][t_col].owner == m_currentPlayer)
     {
@@ -486,7 +494,6 @@ void Grid::deselectPiece()
 
 void Grid::highlightAvailableMoves(int t_row, int t_col)
 {
-    // Clear previous highlights
     clearHighlights();
 
     // Check all cells on the board for valid moves
@@ -496,7 +503,7 @@ void Grid::highlightAvailableMoves(int t_row, int t_col)
         {
             if (isValidMove(t_row, t_col, row, col))
             {
-                // Highlight this cell
+                // Highlight these cells
                 m_highlightCells[row][col].setFillColor(sf::Color(100, 255, 100, 120));
             }
         }
@@ -512,6 +519,27 @@ void Grid::clearHighlights()
             m_highlightCells[row][col].setFillColor(sf::Color(0, 0, 0, 0)); // Fully transparent
         }
     }
+}
+
+void Grid::clearCell(int t_row, int t_col)
+{
+    if (!isValidPosition(t_row, t_col))
+    {
+        return;
+    }
+
+    m_board[t_row][t_col].type = PieceType::NONE;
+    m_board[t_row][t_col].owner = Player::NONE;
+}
+
+void Grid::setPiece(int t_row, int t_col, PieceType t_type, Player t_owner)
+{
+    if (!isValidPosition(t_row, t_col))
+    {
+        return;
+    }
+
+    setupPiece(t_row, t_col, t_type, t_owner);
 }
 
 bool Grid::checkForWin()//4 in a row check
