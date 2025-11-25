@@ -12,6 +12,6 @@ static const int MAX_SNAKES_PER_PLAYER = 1;
 static const int MAX_DONKEYS_PER_PLAYER = 3;
 
 //ai stuff
-static const int MAX_DEPTH = 5;  // Depth for minimax search
+static const int MAX_DEPTH = 3;  // Depth for minimax search
 static const int WIN_SCORE = 10000;
 static const int LOSE_SCORE = -10000;

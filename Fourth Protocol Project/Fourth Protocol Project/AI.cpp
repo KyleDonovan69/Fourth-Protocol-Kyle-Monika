@@ -296,6 +296,7 @@ int AI::evaluateBoard(Grid& t_grid, Player t_aiPlayer)
     score += count3InARow(t_grid, t_aiPlayer) * 200;
     score -= count3InARow(t_grid, opponent) * 250;//oppenent threats = bad >:(
 
+
     return score;
 }
 

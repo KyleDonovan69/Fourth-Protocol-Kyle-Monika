@@ -1,0 +1,10 @@
+﻿  Grid.cpp
+C:\SFML-3.0.0\include\SFML\System\Exception.hpp(41,47): warning C4275: non dll-interface class 'std::runtime_error' used as base for dll-interface class 'sf::Exception'
+  (compiling source file 'Grid.cpp')
+      C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\stdexcept(100,30):
+      see declaration of 'std::runtime_error'
+      C:\SFML-3.0.0\include\SFML\System\Exception.hpp(41,23):
+      see declaration of 'sf::Exception'
+  
+C:\Users\gameuser\Desktop\cas2\Fourth-Protocol-Kyle-Monika\Fourth Protocol Project\Fourth Protocol Project\Grid.cpp(733,1): warning C4715: 'Grid::canPieceMove': not all control paths return a value
+  Fourth Protocol Project.vcxproj -> C:\Users\gameuser\Desktop\cas2\Fourth-Protocol-Kyle-Monika\Fourth Protocol Project\Debug\Fourth Protocol Project.exe

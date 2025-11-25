@@ -1,4 +1,4 @@
-#include "Grid.h"
+﻿#include "Grid.h"
 
 Grid::Grid() :
     m_selectedPiece(PieceType::FROG),
@@ -676,33 +676,57 @@ bool Grid::canPieceMove(PieceType t_type, int t_fromRow, int t_fromCol, int t_to
             return true;
         }
 
-        // Frog can also jump over pieces
-        if (rowDiff == 0 || colDiff == 0 || rowDiff == colDiff)
+        // Jump must be straight or diagonal
+        if (!(rowDiff == 0 || colDiff == 0 || rowDiff == colDiff))
         {
-            int rowStep = (t_toRow > t_fromRow) ? 1 : ((t_toRow < t_fromRow) ? -1 : 0);
-            int colStep = (t_toCol > t_fromCol) ? 1 : ((t_toCol < t_fromCol) ? -1 : 0);
+            return false;
+        }
 
-            int currentRow = t_fromRow + rowStep;
-            int currentCol = t_fromCol + colStep;
-            bool foundPiece = false;
+        int rowStep = (t_toRow > t_fromRow) ? 1 : ((t_toRow < t_fromRow) ? -1 : 0);
+        int colStep = (t_toCol > t_fromCol) ? 1 : ((t_toCol < t_fromCol) ? -1 : 0);
 
-            while (currentRow != t_toRow || currentCol != t_toCol)
+        int currentRow = t_fromRow + rowStep;
+        int currentCol = t_fromCol + colStep;
+
+
+        bool foundFirstPiece = false;
+
+        // Move along the line until reaching target
+        while (currentRow != t_toRow || currentCol != t_toCol)
+        {
+            if (currentRow == t_toRow && currentCol == t_toCol)
             {
-                if (m_board[currentRow][currentCol].type != PieceType::NONE)
-                {
-                    foundPiece = true;
-                }
-                currentRow += rowStep;
-                currentCol += colStep;
+                break;
             }
 
-            // Valid jump if at least one piece to jump over
-            return foundPiece;
-        }
-        return false;
-    }
+            if (m_board[currentRow][currentCol].type != PieceType::NONE)
+            {
+                //hit a piece
+                foundFirstPiece = true;
+            }
+            else
+            {
+                // Empty space before a piece breaks the chain / no jump
+                if (!foundFirstPiece)
+                    return false;
 
-    default:
-        return false;
+                // Empty space AFTER pieces but before target / frog must stop there
+                if (currentRow != t_toRow || currentCol != t_toCol)
+                    return false;
+            }
+
+            currentRow += rowStep;
+            currentCol += colStep;
+        }
+
+        // Landing square has to be empty
+        if (m_board[t_toRow][t_toCol].type != PieceType::NONE)
+        {
+            return false;
+        }
+
+        // Must have jumped over at least one piece
+        return foundFirstPiece;
+    }
     }
 }
