@@ -68,23 +68,46 @@ std::pair<int, int> AI::choosePlacementPos(Grid& t_grid)
     {
         for (int col = 0; col < GRID_SIZE; ++col)
         {
-            if (isCellEmpty(t_grid, row, col))
+            if (t_grid.isCellEmpty(row, col)) 
             {
-                emptyCells.push_back(std::make_pair(row, col));//push them for the ai to check
+                emptyCells.push_back({ row, col });
             }
+
+
+        }
+    }
+    Player opponent = (t_grid.getCurrentPlayer() == Player::PLAYER_ONE)
+        ? Player::PLAYER_TWO
+        : Player::PLAYER_ONE;
+
+    // BLOCK opponent winning placement
+        for (auto cell : emptyCells)
+        {
+            if (doesMoveCauseWin(t_grid, cell.first, cell.second, opponent))
+            {
+                return cell; // place here to block
+            }
+        }
+
+    // Try to form our own winning line
+    for (auto cell : emptyCells)
+    {
+        if (doesMoveCauseWin(t_grid, cell.first, cell.second, t_grid.getCurrentPlayer()))
+        {
+            return cell; // place aggressively
         }
     }
 
-    // pick a random empty cell from list
-    if (!emptyCells.empty())
-    {
-        int randomIndex = rand() % emptyCells.size();
-        return emptyCells[randomIndex];
-    }
+    //  Otherwise choose center-ish
+    if (t_grid.isCellEmpty(2, 2))
+        return { 2,2 };
 
-    // fallback to center just in case
-    return std::make_pair(2, 2);
+    //fallback to random choice
+    int randomIndex = rand() % emptyCells.size();
+    return emptyCells[randomIndex];
 }
+
+
 
 void AI::movePiece(Grid& t_grid)
 {
@@ -283,6 +306,30 @@ int AI::minimax(Grid& t_grid, int t_depth, bool t_isMaximizing, Player t_aiPlaye
     }
 }
 
+bool AI::doesMoveCauseWin(Grid& t_grid, int row, int col, Player player)
+{
+    // Temporarily place a piece
+    PieceType temp = PieceType::DONKEY; // type doesn't matter for win check
+    Player oldOwner = t_grid.getCellOwner(row, col);
+    PieceType oldType = t_grid.getPieceType(row, col);
+
+    t_grid.setPiece(row, col, temp, player);
+
+    bool win = false;
+
+    // Check if this creates 4 in a row
+    if (count4InARow(t_grid, player) > 0)
+        win = true;
+
+    // Undo change
+    if (oldType == PieceType::NONE)
+        t_grid.clearCell(row, col);
+    else
+        t_grid.setPiece(row, col, oldType, oldOwner);
+
+    return win;
+}
+
 int AI::evaluateBoard(Grid& t_grid, Player t_aiPlayer)
 {
     Player opponent = (t_aiPlayer == Player::PLAYER_ONE) ? Player::PLAYER_TWO : Player::PLAYER_ONE;//figure out who is who
@@ -294,13 +341,14 @@ int AI::evaluateBoard(Grid& t_grid, Player t_aiPlayer)
     //if opponent has a 4 in a row loose score - minmax avoids at all costs
     score -= count4InARow(t_grid, opponent) * 12000;
 
+
     // checks which line can be made into 4 in a row
     score += countPotentialWins(t_grid, t_aiPlayer) * 80;
     score -= countPotentialWins(t_grid, opponent) * 60;  // Weight opponent threats higher to not lose
 
     // Count 3-in-a-rows to set as a threat
     score += count3InARow(t_grid, t_aiPlayer) * 800;
-    score -= count3InARow(t_grid, opponent) * 250;//oppenent threats = bad >:(
+    score -= count3InARow(t_grid, opponent) * 5000;//oppenent threats = bad >:(
 
 
     return score;

@@ -6,9 +6,5 @@ C:\SFML-3.0.0\include\SFML\System\Exception.hpp(41,47): warning C4275: non dll-i
       C:\SFML-3.0.0\include\SFML\System\Exception.hpp(41,23):
       see declaration of 'sf::Exception'
   
-C:\Users\gameuser\Desktop\cas2\Fourth-Protocol-Kyle-Monika\Fourth Protocol Project\Fourth Protocol Project\AI.cpp(102,64): warning C4100: 't_player': unreferenced parameter
-  Game.cpp
-C:\Users\gameuser\Desktop\cas2\Fourth-Protocol-Kyle-Monika\Fourth Protocol Project\Fourth Protocol Project\Game.cpp(165,28): warning C4100: 't_deltaTime': unreferenced parameter
-  main.cpp
-  Generating Code...
+C:\Users\gameuser\Desktop\cas2\Fourth-Protocol-Kyle-Monika\Fourth Protocol Project\Fourth Protocol Project\AI.cpp(125,64): warning C4100: 't_player': unreferenced parameter
   Fourth Protocol Project.vcxproj -> C:\Users\gameuser\Desktop\cas2\Fourth-Protocol-Kyle-Monika\Fourth Protocol Project\Debug\Fourth Protocol Project.exe

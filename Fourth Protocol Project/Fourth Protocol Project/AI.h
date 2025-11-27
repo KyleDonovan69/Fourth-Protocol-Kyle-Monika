@@ -45,6 +45,8 @@ private:
     void testMove(Grid& t_grid, const Move& t_move);//helps ai test moves first before deciding
     void undoMove(Grid& t_grid, const Move& t_move, PieceType t_capturedType, Player t_capturedOwner);
 
+    bool doesMoveCauseWin(Grid& t_grid, int row, int col, Player player);
+
     int count4InARow(Grid& t_grid, Player t_player);
     int count3InARow(Grid& t_grid, Player t_player);//checks the board for rows of 3
     int countPotentialWins(Grid& t_grid, Player t_player);
