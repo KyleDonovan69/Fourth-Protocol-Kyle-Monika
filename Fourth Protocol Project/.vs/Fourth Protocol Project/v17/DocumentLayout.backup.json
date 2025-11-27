@@ -3,12 +3,16 @@
   "WorkspaceRootPath": "C:\\Users\\gameuser\\Desktop\\cas2\\Fourth-Protocol-Kyle-Monika\\Fourth Protocol Project\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{CBB5AC8F-E739-4533-AB5E-B780E09D4570}|Fourth Protocol Project\\Fourth Protocol Project.vcxproj|C:\\Users\\gameuser\\Desktop\\cas2\\Fourth-Protocol-Kyle-Monika\\Fourth Protocol Project\\Fourth Protocol Project\\AI.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{CBB5AC8F-E739-4533-AB5E-B780E09D4570}|Fourth Protocol Project\\Fourth Protocol Project.vcxproj|solutionrelative:Fourth Protocol Project\\AI.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{CBB5AC8F-E739-4533-AB5E-B780E09D4570}|Fourth Protocol Project\\Fourth Protocol Project.vcxproj|C:\\Users\\gameuser\\Desktop\\cas2\\Fourth-Protocol-Kyle-Monika\\Fourth Protocol Project\\Fourth Protocol Project\\Grid.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{CBB5AC8F-E739-4533-AB5E-B780E09D4570}|Fourth Protocol Project\\Fourth Protocol Project.vcxproj|solutionrelative:Fourth Protocol Project\\Grid.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{CBB5AC8F-E739-4533-AB5E-B780E09D4570}|Fourth Protocol Project\\Fourth Protocol Project.vcxproj|C:\\Users\\gameuser\\Desktop\\cas2\\Fourth-Protocol-Kyle-Monika\\Fourth Protocol Project\\Fourth Protocol Project\\AI.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{CBB5AC8F-E739-4533-AB5E-B780E09D4570}|Fourth Protocol Project\\Fourth Protocol Project.vcxproj|solutionrelative:Fourth Protocol Project\\AI.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+      "AbsoluteMoniker": "D:0:0:{CBB5AC8F-E739-4533-AB5E-B780E09D4570}|Fourth Protocol Project\\Fourth Protocol Project.vcxproj|C:\\Users\\gameuser\\Desktop\\cas2\\Fourth-Protocol-Kyle-Monika\\Fourth Protocol Project\\Fourth Protocol Project\\AI.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{CBB5AC8F-E739-4533-AB5E-B780E09D4570}|Fourth Protocol Project\\Fourth Protocol Project.vcxproj|solutionrelative:Fourth Protocol Project\\AI.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{CBB5AC8F-E739-4533-AB5E-B780E09D4570}|Fourth Protocol Project\\Fourth Protocol Project.vcxproj|C:\\Users\\gameuser\\Desktop\\cas2\\Fourth-Protocol-Kyle-Monika\\Fourth Protocol Project\\Fourth Protocol Project\\Constants.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
@@ -26,24 +30,37 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 4,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 2,
+              "Title": "AI.h",
+              "DocumentMoniker": "C:\\Users\\gameuser\\Desktop\\cas2\\Fourth-Protocol-Kyle-Monika\\Fourth Protocol Project\\Fourth Protocol Project\\AI.h",
+              "RelativeDocumentMoniker": "Fourth Protocol Project\\AI.h",
+              "ToolTip": "C:\\Users\\gameuser\\Desktop\\cas2\\Fourth-Protocol-Kyle-Monika\\Fourth Protocol Project\\Fourth Protocol Project\\AI.h",
+              "RelativeToolTip": "Fourth Protocol Project\\AI.h",
+              "ViewState": "AgIAAAwAAAAAAAAAAAAAABcAAAASAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2025-11-25T15:16:56.218Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
               "Title": "Grid.cpp",
               "DocumentMoniker": "C:\\Users\\gameuser\\Desktop\\cas2\\Fourth-Protocol-Kyle-Monika\\Fourth Protocol Project\\Fourth Protocol Project\\Grid.cpp",
               "RelativeDocumentMoniker": "Fourth Protocol Project\\Grid.cpp",
               "ToolTip": "C:\\Users\\gameuser\\Desktop\\cas2\\Fourth-Protocol-Kyle-Monika\\Fourth Protocol Project\\Fourth Protocol Project\\Grid.cpp",
               "RelativeToolTip": "Fourth Protocol Project\\Grid.cpp",
-              "ViewState": "AgIAALkCAAAAAAAAAAAiwNQCAAAZAAAAAAAAAA==",
+              "ViewState": "AgIAACEAAAAAAAAAAAAAAKwCAABTAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2025-11-25T14:28:06.171Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 3,
               "Title": "Constants.h",
               "DocumentMoniker": "C:\\Users\\gameuser\\Desktop\\cas2\\Fourth-Protocol-Kyle-Monika\\Fourth Protocol Project\\Fourth Protocol Project\\Constants.h",
               "RelativeDocumentMoniker": "Fourth Protocol Project\\Constants.h",
@@ -56,26 +73,26 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 4,
               "Title": "Menu.cpp",
               "DocumentMoniker": "C:\\Users\\gameuser\\Desktop\\cas2\\Fourth-Protocol-Kyle-Monika\\Fourth Protocol Project\\Fourth Protocol Project\\Menu.cpp",
               "RelativeDocumentMoniker": "Fourth Protocol Project\\Menu.cpp",
               "ToolTip": "C:\\Users\\gameuser\\Desktop\\cas2\\Fourth-Protocol-Kyle-Monika\\Fourth Protocol Project\\Fourth Protocol Project\\Menu.cpp",
               "RelativeToolTip": "Fourth Protocol Project\\Menu.cpp",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABQAAAAmAAAAAAAAAA==",
+              "ViewState": "AgIAAEIAAAAAAAAAAAAAABQAAAAmAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2025-11-24T11:23:58.017Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 0,
               "Title": "AI.cpp",
               "DocumentMoniker": "C:\\Users\\gameuser\\Desktop\\cas2\\Fourth-Protocol-Kyle-Monika\\Fourth Protocol Project\\Fourth Protocol Project\\AI.cpp",
               "RelativeDocumentMoniker": "Fourth Protocol Project\\AI.cpp",
               "ToolTip": "C:\\Users\\gameuser\\Desktop\\cas2\\Fourth-Protocol-Kyle-Monika\\Fourth Protocol Project\\Fourth Protocol Project\\AI.cpp",
               "RelativeToolTip": "Fourth Protocol Project\\AI.cpp",
-              "ViewState": "AgIAABMBAAAAAAAAAAAAACsBAAARAAAAAAAAAA==",
+              "ViewState": "AgIAABEBAAAAAAAAAAAAACYBAAA0AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2025-11-24T11:23:59.052Z",
               "EditorCaption": ""

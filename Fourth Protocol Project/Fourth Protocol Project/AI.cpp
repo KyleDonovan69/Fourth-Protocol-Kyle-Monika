@@ -11,6 +11,7 @@ AI::~AI()
 {
 }
 
+
 void AI::makeMove(Grid& t_grid)
 {
     // check the state for actions
@@ -288,12 +289,17 @@ int AI::evaluateBoard(Grid& t_grid, Player t_aiPlayer)
 
     int score = 0;
 
+    //if ai has a 4 in a row 
+    score += count4InARow(t_grid, t_aiPlayer) * 10000;
+    //if opponent has a 4 in a row loose score - minmax avoids at all costs
+    score -= count4InARow(t_grid, opponent) * 12000;
+
     // checks which line can be made into 4 in a row
-    score += countPotentialWins(t_grid, t_aiPlayer) * 50;
+    score += countPotentialWins(t_grid, t_aiPlayer) * 80;
     score -= countPotentialWins(t_grid, opponent) * 60;  // Weight opponent threats higher to not lose
 
     // Count 3-in-a-rows to set as a threat
-    score += count3InARow(t_grid, t_aiPlayer) * 200;
+    score += count3InARow(t_grid, t_aiPlayer) * 800;
     score -= count3InARow(t_grid, opponent) * 250;//oppenent threats = bad >:(
 
 
@@ -393,6 +399,50 @@ int AI::count3InARow(Grid& t_grid, Player t_player)
     }
 
     return threats;
+}
+
+//counts every full 4 in a row line for the given player
+int AI::count4InARow(Grid& t_grid, Player t_player)
+{
+    int wins = 0;
+
+    // horizontal
+    for (int row = 0; row < GRID_SIZE; row++)
+        for (int col = 0; col <= GRID_SIZE - 4; col++)
+            if (t_grid.getCellOwner(row, col) == t_player &&
+                t_grid.getCellOwner(row, col + 1) == t_player &&
+                t_grid.getCellOwner(row, col + 2) == t_player &&
+                t_grid.getCellOwner(row, col + 3) == t_player)
+                wins++;    //found a full horizontl line
+
+    // vertical
+    for (int row = 0; row <= GRID_SIZE - 4; row++)
+        for (int col = 0; col < GRID_SIZE; col++)
+            if (t_grid.getCellOwner(row, col) == t_player &&
+                t_grid.getCellOwner(row + 1, col) == t_player &&
+                t_grid.getCellOwner(row + 2, col) == t_player &&
+                t_grid.getCellOwner(row + 3, col) == t_player)
+                wins++; //found a vertical line
+
+    // diagonal
+    for (int row = 0; row <= GRID_SIZE - 4; row++)
+        for (int col = 0; col <= GRID_SIZE - 4; col++)
+            if (t_grid.getCellOwner(row, col) == t_player &&
+                t_grid.getCellOwner(row + 1, col + 1) == t_player &&
+                t_grid.getCellOwner(row + 2, col + 2) == t_player &&
+                t_grid.getCellOwner(row + 3, col + 3) == t_player)
+                wins++; //found a diagonal top left line
+
+    // anti-diagonal
+    for (int row = 0; row <= GRID_SIZE - 4; row++)
+        for (int col = 3; col < GRID_SIZE; col++)
+            if (t_grid.getCellOwner(row, col) == t_player &&
+                t_grid.getCellOwner(row + 1, col - 1) == t_player &&
+                t_grid.getCellOwner(row + 2, col - 2) == t_player &&
+                t_grid.getCellOwner(row + 3, col - 3) == t_player)
+                wins++;  //found a diagonal top right line
+   
+    return wins;
 }
 
 int AI::countPotentialWins(Grid& t_grid, Player t_player)//same as threats but checks 2+ in a row
