@@ -54,6 +54,15 @@ void Game::processEvents()
 		{
 			processMouse(newEvent);
 		}
+		if (newEvent->is<sf::Event::MouseMoved>())//for hover effects
+		{
+			const sf::Event::MouseMoved* mouseMove = newEvent->getIf<sf::Event::MouseMoved>();
+			sf::Vector2f mousePos = m_window.mapPixelToCoords(mouseMove->position);
+			if (m_showMenu)
+			{
+				m_menu.handleMouseMove(mousePos);
+			}
+		}
 	}
 }
 
@@ -72,6 +81,13 @@ void Game::processKeys(const std::optional<sf::Event> t_event)
 			m_grid.resetGame();
 			updateAllUI();
 			m_grid.clearHighlights();
+			
+			// Restart AI vs AI
+			if (m_gameMode == GameMode::AI_VS_AI)
+			{
+				m_aiWaiting = true;
+				m_aiClock.restart();
+			}
 		}
 	}
 	if (sf::Keyboard::Key::M == newKeypress->code)
@@ -89,23 +105,26 @@ void Game::processKeys(const std::optional<sf::Event> t_event)
 	}
 	if (!m_aiWaiting && m_grid.getGameState() != GameState::GAME_OVER)
 	{
-		if (sf::Keyboard::Key::Num1 == newKeypress->code)
+		// stop player piece selection in AI vs AI
+		if (m_gameMode != GameMode::AI_VS_AI)
 		{
-			m_grid.setSelectedPiece(PieceType::FROG);
-			updateSelectedPieceText();
-		}
-		if (sf::Keyboard::Key::Num2 == newKeypress->code)
-		{
-			m_grid.setSelectedPiece(PieceType::SNAKE);
-			updateSelectedPieceText();
-		}
-		if (sf::Keyboard::Key::Num3 == newKeypress->code)
-		{
-			m_grid.setSelectedPiece(PieceType::DONKEY);
-			updateSelectedPieceText();
+			if (sf::Keyboard::Key::Num1 == newKeypress->code)
+			{
+				m_grid.setSelectedPiece(PieceType::FROG);
+				updateSelectedPieceText();
+			}
+			if (sf::Keyboard::Key::Num2 == newKeypress->code)
+			{
+				m_grid.setSelectedPiece(PieceType::SNAKE);
+				updateSelectedPieceText();
+			}
+			if (sf::Keyboard::Key::Num3 == newKeypress->code)
+			{
+				m_grid.setSelectedPiece(PieceType::DONKEY);
+				updateSelectedPieceText();
+			}
 		}
 	}
-
 }
 
 void Game::processMouse(const std::optional<sf::Event> t_event)
@@ -122,6 +141,12 @@ void Game::processMouse(const std::optional<sf::Event> t_event)
 			{
 				m_gameMode = m_menu.getSelectedMode();
 				m_showMenu = false;
+				
+				if (m_gameMode == GameMode::AI_VS_AI)
+				{
+					m_aiWaiting = true;
+					m_aiClock.restart();
+				}
 			}
 		}
 		else
@@ -133,6 +158,12 @@ void Game::processMouse(const std::optional<sf::Event> t_event)
 				// only allow clicks when it's Player 1 turn
 				canClick = canClick && (m_grid.getCurrentPlayer() == Player::PLAYER_ONE);
 			}
+			else if (m_gameMode == GameMode::AI_VS_AI)
+			{
+				// no manual clicks in AI vs AI mode
+				canClick = false;
+			}
+			
 			if (canClick)
 			{
 				int row, col;
@@ -174,20 +205,28 @@ void Game::update(sf::Time t_deltaTime)
 	{
 		m_aiWaiting = false;
 		handleAITurn();
+		
+		// goes through the turns in AI vs AI
+		if (m_gameMode == GameMode::AI_VS_AI && m_grid.getGameState() != GameState::GAME_OVER)
+		{
+			m_aiWaiting = true;
+			m_aiClock.restart();
+		}
 	}
 }
 
 
 void Game::render()
 {
-	m_window.clear(ULTRAMARINE);
-
 	if (m_showMenu)
 	{
+		m_window.clear(DARK_BLUE);
 		m_menu.draw(m_window);
 	}
 	else
 	{
+		m_window.clear(DARK_BLUE);
+		
 		m_grid.draw(m_window);
 		m_window.draw(m_titleText);
 		m_window.draw(m_playerText);
@@ -223,71 +262,81 @@ void Game::setupTexts()
 	}
 
 	// Setup title text at top
-	m_titleText.setString("The Fourth Protocol");
-	m_titleText.setCharacterSize(45U);
+	m_titleText.setString("THE FOURTH PROTOCOL");
+	m_titleText.setCharacterSize(55U);
 	m_titleText.setOutlineColor(sf::Color::Black);
-	m_titleText.setFillColor(sf::Color::White);
-	m_titleText.setOutlineThickness(2.0f);
+	m_titleText.setFillColor(CYAN);
+	m_titleText.setOutlineThickness(4.0f);
+	m_titleText.setLetterSpacing(1.3f);
+	m_titleText.setStyle(sf::Text::Bold);
 
 	sf::FloatRect titleBounds = m_titleText.getLocalBounds();
 	m_titleText.setOrigin(sf::Vector2f(titleBounds.size.x / 2.0f, titleBounds.size.y / 2.0f));
-	m_titleText.setPosition(sf::Vector2f(WINDOW_WIDTH / 2.0f, 30.0f));
+	m_titleText.setPosition(sf::Vector2f(WINDOW_WIDTH / 2.0f, 35.0f));
 
 	// Setup player text at bottom
 	m_playerText.setFillColor(sf::Color::White);
-	m_playerText.setCharacterSize(25U);
+	m_playerText.setCharacterSize(32U);
 	m_playerText.setOutlineColor(sf::Color::Black);
-	m_playerText.setOutlineThickness(2.0f);
+	m_playerText.setOutlineThickness(3.0f);
+	m_playerText.setStyle(sf::Text::Bold);
 	updatePlayerText();
 	sf::FloatRect playerBounds = m_playerText.getLocalBounds();
 	m_playerText.setOrigin(sf::Vector2f(playerBounds.size.x / 2.0f, playerBounds.size.y / 2.0f));
-	m_playerText.setPosition(sf::Vector2f(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT - 40.0f));
+	m_playerText.setPosition(sf::Vector2f(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT - 30.0f));
 
 	// Setup piece count text on left side
-	m_pieceCountText.setPosition(sf::Vector2f(10.0f, 80.0f));
+	m_pieceCountText.setPosition(sf::Vector2f(15.0f, 90.0f));
 	m_pieceCountText.setFillColor(sf::Color::White);
-	m_pieceCountText.setCharacterSize(25U);
+	m_pieceCountText.setCharacterSize(24U);
 	m_pieceCountText.setOutlineColor(sf::Color::Black);
-	m_pieceCountText.setOutlineThickness(2.0f);
+	m_pieceCountText.setOutlineThickness(3.0f);
+	m_pieceCountText.setStyle(sf::Text::Bold);
 	updatePieceCountText();
 
 	// Shows what piece is selected
-	m_selectedPieceText.setPosition(sf::Vector2f(10.0f, 450.0f));
-	m_selectedPieceText.setFillColor(sf::Color::Yellow);
-	m_selectedPieceText.setCharacterSize(25U);
+	m_selectedPieceText.setPosition(sf::Vector2f(15.0f, 480.0f));
+	m_selectedPieceText.setFillColor(BRIGHT_YELLOW);
+	m_selectedPieceText.setCharacterSize(28U);
 	m_selectedPieceText.setOutlineColor(sf::Color::Black);
-	m_selectedPieceText.setOutlineThickness(2.0f);
+	m_selectedPieceText.setOutlineThickness(3.0f);
+	m_selectedPieceText.setStyle(sf::Text::Bold);
 	updateSelectedPieceText();
 
 	// State text
-	m_gameStateText.setPosition(sf::Vector2f(WINDOW_WIDTH - 250.0f, 80.0f));
-	m_gameStateText.setFillColor(sf::Color::Cyan);
-	m_gameStateText.setCharacterSize(25U);
+	m_gameStateText.setPosition(sf::Vector2f(WINDOW_WIDTH - 280.0f, 90.0f));
+	m_gameStateText.setFillColor(CYAN);
+	m_gameStateText.setCharacterSize(30U);
 	m_gameStateText.setOutlineColor(sf::Color::Black);
-	m_gameStateText.setOutlineThickness(2.0f);
+	m_gameStateText.setOutlineThickness(3.0f);
+	m_gameStateText.setStyle(sf::Text::Bold);
 	updateGameStateText();
 
-	m_winnerText.setCharacterSize(60U);//displays whoever won
-	m_winnerText.setFillColor(sf::Color::Yellow);
+	// winner text
+	m_winnerText.setCharacterSize(75U);
+	m_winnerText.setFillColor(BRIGHT_YELLOW);
 	m_winnerText.setOutlineColor(sf::Color::Black);
-	m_winnerText.setOutlineThickness(3.0f);
+	m_winnerText.setOutlineThickness(5.0f);
+	m_winnerText.setStyle(sf::Text::Bold);
 	updateWinnerText();
 
-	// Setup restart text for the endgame
+	// restart text
 	m_restartText.setString("Press R to Restart");
-	m_restartText.setCharacterSize(30U);
+	m_restartText.setCharacterSize(34U);
 	m_restartText.setFillColor(sf::Color::White);
 	m_restartText.setOutlineColor(sf::Color::Black);
-	m_restartText.setOutlineThickness(2.0f);
+	m_restartText.setOutlineThickness(3.0f);
+	m_restartText.setStyle(sf::Text::Bold);
 	sf::FloatRect restartBounds = m_restartText.getLocalBounds();
 	m_restartText.setOrigin(sf::Vector2f(restartBounds.size.x / 2.0f, restartBounds.size.y / 2.0f));
 	m_restartText.setPosition(sf::Vector2f(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f + 100.0f));
 
 	m_menuText.setString("Press M to Return to Menu");
-	m_menuText.setCharacterSize(30U);
-	m_menuText.setFillColor(sf::Color::White);
+	m_menuText.setCharacterSize(34U);
+	m_menuText.setFillColor(CYAN);
 	m_menuText.setOutlineColor(sf::Color::Black);
-	m_menuText.setOutlineThickness(2.0f);
+	m_menuText.setOutlineThickness(3.0f);
+	m_menuText.setStyle(sf::Text::Bold);
 	sf::FloatRect menuBounds = m_menuText.getLocalBounds();
 	m_menuText.setOrigin(sf::Vector2f(menuBounds.size.x / 2.0f, menuBounds.size.y / 2.0f));
 	m_menuText.setPosition(sf::Vector2f(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f + 150.0f));
@@ -297,13 +346,13 @@ void Game::updatePlayerText()
 {
 	if (m_grid.getCurrentPlayer() == Player::PLAYER_ONE)
 	{
-		m_playerText.setString("Current Player: 1 (Red)");
-		m_playerText.setFillColor(sf::Color::Red);
+		m_playerText.setString("CURRENT PLAYER: 1 (RED)");
+		m_playerText.setFillColor(BRIGHT_RED);
 	}
 	else
 	{
-		m_playerText.setString("Current Player: 2 (Blue)");
-		m_playerText.setFillColor(sf::Color::Blue);
+		m_playerText.setString("CURRENT PLAYER: 2 (BLUE)");
+		m_playerText.setFillColor(BRIGHT_BLUE);
 	}
 	sf::FloatRect playerBounds = m_playerText.getLocalBounds();
 	m_playerText.setOrigin(sf::Vector2f(playerBounds.size.x / 2.0f, playerBounds.size.y / 2.0f));
@@ -312,12 +361,12 @@ void Game::updatePlayerText()
 
 void Game::updatePieceCountText()
 {
-	std::string countText = "Player 1 Pieces:\n";
+	std::string countText = "PLAYER 1 PIECES:\n";
 	countText += "  Frogs: " + std::to_string(m_grid.getRemainingPieces(Player::PLAYER_ONE, PieceType::FROG)) + "/1\n";
 	countText += "  Snakes: " + std::to_string(m_grid.getRemainingPieces(Player::PLAYER_ONE, PieceType::SNAKE)) + "/1\n";
 	countText += "  Donkeys: " + std::to_string(m_grid.getRemainingPieces(Player::PLAYER_ONE, PieceType::DONKEY)) + "/3\n\n";
 
-	countText += "Player 2 Pieces:\n";
+	countText += "PLAYER 2 PIECES:\n";
 	countText += "  Frogs: " + std::to_string(m_grid.getRemainingPieces(Player::PLAYER_TWO, PieceType::FROG)) + "/1\n";
 	countText += "  Snakes: " + std::to_string(m_grid.getRemainingPieces(Player::PLAYER_TWO, PieceType::SNAKE)) + "/1\n";
 	countText += "  Donkeys: " + std::to_string(m_grid.getRemainingPieces(Player::PLAYER_TWO, PieceType::DONKEY)) + "/3";
@@ -333,20 +382,20 @@ void Game::updateSelectedPieceText()
 	switch (selected)
 	{
 	case PieceType::FROG:
-		selectedName = "Frog (1)";
+		selectedName = "FROG [1]";
 		break;
 	case PieceType::SNAKE:
-		selectedName = "Snake (2)";
+		selectedName = "SNAKE [2]";
 		break;
 	case PieceType::DONKEY:
-		selectedName = "Donkey (3)";
+		selectedName = "DONKEY [3]";
 		break;
 	default:
-		selectedName = "None";
+		selectedName = "NONE";
 		break;
 	}
 
-	m_selectedPieceText.setString("Selected: " + selectedName);
+	m_selectedPieceText.setString("SELECTED: " + selectedName);
 }
 
 void Game::updateGameStateText()
@@ -354,14 +403,17 @@ void Game::updateGameStateText()
 	if (m_grid.getGameState() == GameState::PLACEMENT)
 	{
 		m_gameStateText.setString("PLACEMENT PHASE");
+		m_gameStateText.setFillColor(BRIGHT_YELLOW);
 	}
 	else if (m_grid.getGameState() == GameState::MOVEMENT)
 	{
 		m_gameStateText.setString("MOVEMENT PHASE");
+		m_gameStateText.setFillColor(CYAN);
 	}
 	else
 	{
 		m_gameStateText.setString("GAME OVER");
+		m_gameStateText.setFillColor(BRIGHT_RED);
 	}
 }
 
@@ -375,18 +427,18 @@ void Game::updateWinnerText()
 
 		if (winner == Player::PLAYER_ONE)
 		{
-			winnerStr = "PLAYER 1 (RED) WINS!";
-			winnerColor = sf::Color::Red;
+			winnerStr = "PLAYER 1 WINS!";
+			winnerColor = BRIGHT_RED;
 		}
 		else if (winner == Player::PLAYER_TWO)
 		{
-			winnerStr = "PLAYER 2 (BLUE) WINS!";
-			winnerColor = sf::Color::Blue;
+			winnerStr = "PLAYER 2 WINS!";
+			winnerColor = BRIGHT_BLUE;
 		}
 		else
 		{
-			winnerStr = "TIE!";
-			winnerColor = sf::Color::Yellow;
+			winnerStr = "TIE GAME!";
+			winnerColor = BRIGHT_YELLOW;
 		}
 
 		m_winnerText.setString(winnerStr);

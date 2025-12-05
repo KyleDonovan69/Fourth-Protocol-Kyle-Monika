@@ -112,7 +112,7 @@ std::pair<int, int> AI::choosePlacementPos(Grid& t_grid)
 
     // Evaluate all empty positions and pick the best one
     int bestScore = -10000;
-    std::pair<int, int> bestCell = emptyCells[0];
+    std::vector<std::pair<int, int>> bestScores; // Store moves with similar scores
 
     for (auto cell : emptyCells)
     {
@@ -145,17 +145,32 @@ std::pair<int, int> AI::choosePlacementPos(Grid& t_grid)
             }
         }
         
-        score += adjacentFriendly * 15; // Connect with our pieces
-        score += adjacentEmpty * 5;     // Keep flexibility
+        score += adjacentFriendly * 15; // Connect with our other pieces
+        score += adjacentEmpty * 5;
+        
+        // Add small random change to avoid the same start every time
+        score += (rand() % 21) - 10;
         
         if (score > bestScore)
         {
             bestScore = score;
-            bestCell = cell;
+            bestScores.clear();
+            bestScores.push_back(cell);
+        }
+        else if (score >= bestScore - 15) // Accept moves within 15 points of best
+        {
+            bestScores.push_back(cell);
         }
     }
 
-    return bestCell;
+    // Randomly pick from the best moves to add variety
+    if (!bestScores.empty())
+    {
+        int randomIndex = rand() % bestScores.size();
+        return bestScores[randomIndex];
+    }
+
+    return emptyCells[0]; // Fallback
 }
 
 
@@ -260,6 +275,8 @@ AI::Move AI::findBestMove(Grid& t_grid, Player t_player)
 
     orderMoves(allMoves, t_grid, t_player); // Order moves before evaluation
 
+    std::vector<Move> topMoves; // Store moves with similar scores
+    
     for (Move& move : allMoves)//try all the moves
     {
 		// keep what was in the target cell
@@ -286,7 +303,21 @@ AI::Move AI::findBestMove(Grid& t_grid, Player t_player)
         if (score > bestMove.score)
         {
             bestMove = move;
+            topMoves.clear();
+            topMoves.push_back(move);
         }
+        else if (score == bestMove.score)
+        {
+            // If scores are equal, add to candidates for random selection
+            topMoves.push_back(move);
+        }
+    }
+
+    // Randomly select from top moves to add variety
+    if (!topMoves.empty())
+    {
+        int randomIndex = rand() % topMoves.size();
+        return topMoves[randomIndex];
     }
 
     return bestMove;
@@ -401,7 +432,7 @@ int AI::evaluateBoard(Grid& t_grid, Player t_aiPlayer)
     if (oppWins > 0)
         return LOSE_SCORE; // We lost
     
-    // Count threats - 3 in a row means next move could win
+    // 3 in a row means = possible win
     int aiThreats = count3InARow(t_grid, t_aiPlayer);
     int oppThreats = count3InARow(t_grid, opponent);
     score += aiThreats * 800;  // creating threats

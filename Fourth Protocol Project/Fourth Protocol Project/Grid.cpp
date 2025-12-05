@@ -56,26 +56,26 @@ void Grid::setupGrid()
     {
         for (int col = 0; col < GRID_SIZE; col++)
         {
-            m_cells[row][col].setSize(sf::Vector2f(CELL_SIZE - 2.0f, CELL_SIZE - 2.0f));
+            m_cells[row][col].setSize(sf::Vector2f(CELL_SIZE - 4.0f, CELL_SIZE - 4.0f));
             m_cells[row][col].setPosition(sf::Vector2f(START_X + col * CELL_SIZE, START_Y + row * CELL_SIZE));
 
             // Checkerboard look to it now
             if ((row + col) % 2 == 0)
             {
-                m_cells[row][col].setFillColor(sf::Color(245, 245, 245));
+                m_cells[row][col].setFillColor(GRID_LIGHT);
             }
             else
             {
-                m_cells[row][col].setFillColor(sf::Color(220, 220, 220));
+                m_cells[row][col].setFillColor(GRID_DARK);
             }
 
-            m_cells[row][col].setOutlineThickness(1.0f);
-            m_cells[row][col].setOutlineColor(sf::Color(180, 180, 180));
+            m_cells[row][col].setOutlineThickness(2.0f);
+            m_cells[row][col].setOutlineColor(GRID_BORDER);
 
             // highlights any squares for moves
-            m_highlightCells[row][col].setSize(sf::Vector2f(CELL_SIZE - 2.0f, CELL_SIZE - 2.0f));
+            m_highlightCells[row][col].setSize(sf::Vector2f(CELL_SIZE - 4.0f, CELL_SIZE - 4.0f));
             m_highlightCells[row][col].setPosition(sf::Vector2f(START_X + col * CELL_SIZE, START_Y + row * CELL_SIZE));
-            m_highlightCells[row][col].setFillColor(sf::Color(100, 255, 100, 0));
+            m_highlightCells[row][col].setFillColor(sf::Color(0, 255, 127, 0));
         }
     }
 }
@@ -160,26 +160,31 @@ void Grid::setupPiece(int t_row, int t_col, PieceType t_type, Player t_player)
     m_board[t_row][t_col].owner = t_player;
 
     // Setup circle shape
-    m_board[t_row][t_col].shape.setRadius(38.0f);
+    m_board[t_row][t_col].shape.setRadius(40.0f);
     sf::Vector2f cellPos = m_cells[t_row][t_col].getPosition();
-    m_board[t_row][t_col].shape.setPosition(sf::Vector2f(cellPos.x + 15.0f, cellPos.y + 15.0f));
+    m_board[t_row][t_col].shape.setPosition(sf::Vector2f(cellPos.x + 10.0f, cellPos.y + 10.0f));
 
     if (t_player == Player::PLAYER_ONE)
     {
-        m_board[t_row][t_col].shape.setFillColor(sf::Color::Red);
+        m_board[t_row][t_col].shape.setFillColor(BRIGHT_RED);
     }
     else
     {
-        m_board[t_row][t_col].shape.setFillColor(sf::Color::Blue);
+        m_board[t_row][t_col].shape.setFillColor(BRIGHT_BLUE);
     }
 
-    m_board[t_row][t_col].shape.setOutlineThickness(3.0f);
+    m_board[t_row][t_col].shape.setOutlineThickness(5.0f);
     m_board[t_row][t_col].shape.setOutlineColor(sf::Color::Black);
 
     // Setup text label
     if (m_font != nullptr && m_pieceLabels[t_row][t_col] != nullptr)
     {
         m_pieceLabels[t_row][t_col]->setString(getPieceLabel(t_type));
+        m_pieceLabels[t_row][t_col]->setCharacterSize(60U);
+        m_pieceLabels[t_row][t_col]->setFillColor(sf::Color::White);
+        m_pieceLabels[t_row][t_col]->setOutlineColor(sf::Color::Black);
+        m_pieceLabels[t_row][t_col]->setOutlineThickness(4.0f);
+        m_pieceLabels[t_row][t_col]->setStyle(sf::Text::Bold);
 
         sf::FloatRect textBounds = m_pieceLabels[t_row][t_col]->getLocalBounds();
         m_pieceLabels[t_row][t_col]->setOrigin(sf::Vector2f( textBounds.position.x + textBounds.size.x / 2.0f, textBounds.position.y + textBounds.size.y / 2.0f ));
@@ -471,8 +476,8 @@ void Grid::selectPiece(int t_row, int t_col)
         m_pieceSelected = true;
 
         // Highlight selected piece
-        m_board[t_row][t_col].shape.setOutlineColor(sf::Color::Yellow);
-        m_board[t_row][t_col].shape.setOutlineThickness(5.0f);
+        m_board[t_row][t_col].shape.setOutlineColor(BRIGHT_YELLOW);
+        m_board[t_row][t_col].shape.setOutlineThickness(7.0f);
 
         highlightAvailableMoves(t_row, t_col);
     }
@@ -484,7 +489,7 @@ void Grid::deselectPiece()
     {
         // Reset outline
         m_board[m_selectedRow][m_selectedCol].shape.setOutlineColor(sf::Color::Black);
-        m_board[m_selectedRow][m_selectedCol].shape.setOutlineThickness(3.0f);
+        m_board[m_selectedRow][m_selectedCol].shape.setOutlineThickness(5.0f);
 
         m_pieceSelected = false;
         m_selectedRow = -1;
@@ -504,7 +509,7 @@ void Grid::highlightAvailableMoves(int t_row, int t_col)
             if (isValidMove(t_row, t_col, row, col))
             {
                 // Highlight these cells
-                m_highlightCells[row][col].setFillColor(sf::Color(100, 255, 100, 120));
+                m_highlightCells[row][col].setFillColor(HIGHLIGHT_GREEN);
             }
         }
     }
@@ -728,5 +733,8 @@ bool Grid::canPieceMove(PieceType t_type, int t_fromRow, int t_fromCol, int t_to
         // Must have jumped over at least one piece
         return foundFirstPiece;
     }
+    
+    default:
+        return false;
     }
 }
