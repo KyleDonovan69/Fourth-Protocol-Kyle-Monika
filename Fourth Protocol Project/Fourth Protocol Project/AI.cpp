@@ -3,13 +3,39 @@
 #include <ctime>
 #include <algorithm>
 
-AI::AI()
+AI::AI() :
+    m_difficulty(Difficulty::MEDIUM),
+    m_maxDepth(MAX_DEPTH_MEDIUM)
 {
     srand(static_cast<unsigned>(time(nullptr)));
 }
 
 AI::~AI()
 {
+}
+
+void AI::setDifficulty(Difficulty t_difficulty)
+{
+    m_difficulty = t_difficulty;
+    
+    // Set search depth based on difficulty
+    switch (t_difficulty)
+    {
+    case Difficulty::EASY:
+        m_maxDepth = MAX_DEPTH_EASY;
+        break;
+    case Difficulty::MEDIUM:
+        m_maxDepth = MAX_DEPTH_MEDIUM;
+        break;
+    case Difficulty::HARD:
+        m_maxDepth = MAX_DEPTH_HARD;
+        break;
+    }
+}
+
+Difficulty AI::getDifficulty() const
+{
+    return m_difficulty;
 }
 
 
@@ -357,7 +383,7 @@ AI::Move AI::findBestMove(Grid& t_grid, Player t_player)
         }
 
         // use minimax to check how good the move is
-        int score = minimax(t_grid, MAX_DEPTH - 1, false, t_player, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
+        int score = minimax(t_grid, m_maxDepth - 1, false, t_player, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
         move.score = score;
 
         // undo the move to check the next
@@ -401,7 +427,7 @@ AI::Move AI::findBestMove(Grid& t_grid, Player t_player)
             return move;
         }
 
-        int score = minimax(t_grid, MAX_DEPTH - 1, false, t_player, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
+        int score = minimax(t_grid, m_maxDepth - 1, false, t_player, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
         move.score = score;
         undoMove(t_grid, move, capturedType, capturedOwner);
 

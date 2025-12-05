@@ -153,6 +153,13 @@ void Game::processMouse(const std::optional<sf::Event> t_event)
 				m_gameMode = m_menu.getSelectedMode();
 				m_showMenu = false;
 				
+				// Set AI difficulty based on menu selection
+				if (m_gameMode == GameMode::PLAYER_VS_AI || m_gameMode == GameMode::AI_VS_AI)
+				{
+					Difficulty selectedDifficulty = m_menu.getSelectedDifficulty();
+					m_ai.setDifficulty(selectedDifficulty);
+				}
+				
 				if (m_gameMode == GameMode::AI_VS_AI)
 				{
 					m_aiWaiting = true;
