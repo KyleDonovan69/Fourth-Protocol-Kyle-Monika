@@ -51,6 +51,7 @@ private:
 	sf::Text m_winnerText{ m_jerseyFont };
 	sf::Text m_restartText{ m_jerseyFont };
 	sf::Text m_menuText{ m_jerseyFont };
+	sf::Text m_moveVisText{ m_jerseyFont };
 
 	bool m_DELETEexitGame;
 	Grid m_grid;

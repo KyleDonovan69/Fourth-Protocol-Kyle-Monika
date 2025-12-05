@@ -81,6 +81,7 @@ void Game::processKeys(const std::optional<sf::Event> t_event)
 			m_grid.resetGame();
 			updateAllUI();
 			m_grid.clearHighlights();
+			m_grid.clearVisuals();
 			
 			// Restart AI vs AI
 			if (m_gameMode == GameMode::AI_VS_AI)
@@ -101,6 +102,16 @@ void Game::processKeys(const std::optional<sf::Event> t_event)
 
 			updateAllUI();
 			m_grid.clearHighlights();
+			m_grid.clearVisuals();
+		}
+	}
+	if (sf::Keyboard::Key::V == newKeypress->code)
+	{
+		// AI choice visuals
+		m_grid.enableVisuals(!m_grid.areVisualsOn());
+		if (!m_grid.areVisualsOn())
+		{
+			m_grid.clearVisuals();
 		}
 	}
 	if (!m_aiWaiting && m_grid.getGameState() != GameState::GAME_OVER)
@@ -170,7 +181,7 @@ void Game::processMouse(const std::optional<sf::Event> t_event)
 				if (m_grid.getCellFromMouse(mousePos, row, col))
 				{
 					m_grid.handleClick(row, col);//clicking pieces + movement
-					updateAllUI();
+					updateAllUI(); // Updates any changed texts
 
 					if (m_gameMode == GameMode::PLAYER_VS_AI && m_grid.getCurrentPlayer() == Player::PLAYER_TWO && m_grid.getGameState() != GameState::GAME_OVER)
 					{
@@ -233,6 +244,19 @@ void Game::render()
 		m_window.draw(m_pieceCountText);
 		m_window.draw(m_selectedPieceText);
 		m_window.draw(m_gameStateText);
+		
+		// updates and draws AI choices
+		if (m_grid.areVisualsOn())
+		{
+			m_moveVisText.setString("AI VISUALISATION: ON [V]");
+			m_moveVisText.setFillColor(BRIGHT_YELLOW);
+		}
+		else
+		{
+			m_moveVisText.setString("AI VISUALISATION: OFF [V]");
+			m_moveVisText.setFillColor(sf::Color(150, 150, 150));
+		}
+		m_window.draw(m_moveVisText);
 
 		if (m_grid.getGameState() == GameState::GAME_OVER)
 		{
@@ -247,7 +271,17 @@ void Game::render()
 
 void Game::handleAITurn()
 {
+	// Clear previous visuals before AI thinks
+	m_grid.clearVisuals();
+	
 	m_ai.makeMove(m_grid);
+	
+	// Show what moves the AI was thinking about (dreamy lil fella)
+	if (m_grid.areVisualsOn())
+	{
+		std::vector<AIVisualisation> moves = m_ai.getLastCheckedMoves();
+		m_grid.setVisuals(moves);
+	}
 
 	// update UI
 	updateAllUI();
@@ -340,6 +374,15 @@ void Game::setupTexts()
 	sf::FloatRect menuBounds = m_menuText.getLocalBounds();
 	m_menuText.setOrigin(sf::Vector2f(menuBounds.size.x / 2.0f, menuBounds.size.y / 2.0f));
 	m_menuText.setPosition(sf::Vector2f(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f + 150.0f));
+	
+	// AI visuals texts
+	m_moveVisText.setString("AI VISUALISATION: OFF [V]");
+	m_moveVisText.setCharacterSize(22U);
+	m_moveVisText.setFillColor(sf::Color(150, 150, 150));
+	m_moveVisText.setOutlineColor(sf::Color::Black);
+	m_moveVisText.setOutlineThickness(2.0f);
+	m_moveVisText.setStyle(sf::Text::Bold);
+	m_moveVisText.setPosition(sf::Vector2f(WINDOW_WIDTH - 300.0f, WINDOW_HEIGHT - 30.0f));
 }
 
 void Game::updatePlayerText()
@@ -454,6 +497,7 @@ void Game::updateAllUI()
 {
 	updatePlayerText();
 	updatePieceCountText();
+	updateSelectedPieceText();
 	updateGameStateText();
 	updateWinnerText();
 }

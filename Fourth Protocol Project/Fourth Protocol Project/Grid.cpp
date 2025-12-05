@@ -7,7 +7,8 @@ Grid::Grid() :
     m_gameState(GameState::PLACEMENT),
     m_selectedRow(-1),
     m_selectedCol(-1),
-    m_pieceSelected(false)
+    m_pieceSelected(false),
+    m_isVisualOn(false)
 {
     for (int i = 0; i < 4; ++i)
     {
@@ -20,6 +21,7 @@ Grid::Grid() :
         for (int col = 0; col < GRID_SIZE; ++col)
         {
             m_pieceLabels[row][col] = nullptr;
+            m_aiScoreLabels[row][col] = nullptr;
         }
     }
 
@@ -42,6 +44,7 @@ Grid::~Grid()//Deconstructor
         for (int col = 0; col < GRID_SIZE; ++col)
         {
             delete m_pieceLabels[row][col];
+            delete m_aiScoreLabels[row][col];
         }
     }
 }
@@ -76,6 +79,11 @@ void Grid::setupGrid()
             m_highlightCells[row][col].setSize(sf::Vector2f(CELL_SIZE - 4.0f, CELL_SIZE - 4.0f));
             m_highlightCells[row][col].setPosition(sf::Vector2f(START_X + col * CELL_SIZE, START_Y + row * CELL_SIZE));
             m_highlightCells[row][col].setFillColor(sf::Color(0, 255, 127, 0));
+            
+            // AI visualization cells
+            m_visCells[row][col].setSize(sf::Vector2f(CELL_SIZE - 4.0f, CELL_SIZE - 4.0f));
+            m_visCells[row][col].setPosition(sf::Vector2f(START_X + col * CELL_SIZE, START_Y + row * CELL_SIZE));
+            m_visCells[row][col].setFillColor(sf::Color(0, 0, 0, 0)); // Transparent by default
         }
     }
 }
@@ -94,6 +102,13 @@ void Grid::loadFont(const sf::Font& t_font)
             m_pieceLabels[row][col]->setFillColor(sf::Color::White);
             m_pieceLabels[row][col]->setOutlineColor(sf::Color::Black);
             m_pieceLabels[row][col]->setOutlineThickness(2.0f);
+            
+            // Create AI score labels
+            m_aiScoreLabels[row][col] = new sf::Text(*m_font);
+            m_aiScoreLabels[row][col]->setCharacterSize(20U);
+            m_aiScoreLabels[row][col]->setFillColor(sf::Color::White);
+            m_aiScoreLabels[row][col]->setOutlineColor(sf::Color::Black);
+            m_aiScoreLabels[row][col]->setOutlineThickness(2.0f);
         }
     }
 }
@@ -230,6 +245,12 @@ void Grid::placePiece(int t_row, int t_col)
     setupPiece(t_row, t_col, m_selectedPiece, m_currentPlayer);
     getPieceCount(m_currentPlayer, m_selectedPiece)++;
 
+    // Auto-switch to next available piece if current one is now maxed out
+    if (!canPlacePiece(m_selectedPiece))
+    {
+        autoSelectNextPiece();
+    }
+
     if (checkForWin())
     {
         return;
@@ -250,6 +271,12 @@ void Grid::switchPlayer()
         m_currentPlayer = Player::PLAYER_ONE;
     }
     clearHighlights();
+    
+    // Auto-select available piece for the new player if current selection is out
+    if (m_gameState == GameState::PLACEMENT && !canPlacePiece(m_selectedPiece))
+    {
+        autoSelectNextPiece();
+    }
 }
 
 void Grid::setSelectedPiece(PieceType t_type)
@@ -308,6 +335,9 @@ void Grid::resetGame()
             m_board[row][col].owner = Player::NONE;
         }
     }
+    
+    // Ensure we start with a valid piece selection
+    autoSelectNextPiece();
 }
 
 bool Grid::isCellEmpty(int t_row, int t_col) const
@@ -374,6 +404,24 @@ void Grid::draw(sf::RenderWindow& t_window)
             t_window.draw(m_cells[row][col]);
         }
     }
+    
+    // Draw choice visuals
+    if (m_isVisualOn)
+    {
+        for (int row = 0; row < GRID_SIZE; ++row)
+        {
+            for (int col = 0; col < GRID_SIZE; ++col)
+            {
+                t_window.draw(m_visCells[row][col]);
+                if (m_aiScoreLabels[row][col] != nullptr && 
+                    !m_aiScoreLabels[row][col]->getString().isEmpty())
+                {
+                    t_window.draw(*m_aiScoreLabels[row][col]);
+                }
+            }
+        }
+    }
+    
     for (int row = 0; row < GRID_SIZE; ++row)
     {
         for (int col = 0; col < GRID_SIZE; ++col)
@@ -736,5 +784,109 @@ bool Grid::canPieceMove(PieceType t_type, int t_fromRow, int t_fromCol, int t_to
     
     default:
         return false;
+    }
+}
+
+void Grid::autoSelectNextPiece()
+{
+    // Try select pieces in order of DONKEY -> SNAKE -> FROG, makes it better to play without having to press buttons every time
+    PieceType typesToTry[] = { PieceType::DONKEY, PieceType::SNAKE, PieceType::FROG };
+    
+    for (PieceType type : typesToTry)
+    {
+        if (canPlacePiece(type))
+        {
+            m_selectedPiece = type;
+            return;
+        }
+    }
+    
+}
+
+void Grid::setVisuals(const std::vector<AIVisualisation>& t_moves)
+{
+    if (!m_isVisualOn)
+        return;
+        
+    // Clear previous visuals
+    clearVisuals();
+    
+    if (t_moves.empty())
+        return;
+    
+    // Find min and max scores for normalization
+    int minScore = t_moves[0].score;
+    int maxScore = t_moves[0].score;
+    for (const auto& move : t_moves)
+    {
+        minScore = std::min(minScore, move.score);
+        maxScore = std::max(maxScore, move.score);
+    }
+    
+    const float GRID_TOTAL_SIZE = GRID_SIZE * CELL_SIZE;
+    const float START_X = (WINDOW_WIDTH - GRID_TOTAL_SIZE) / 2.0f;
+    const float START_Y = (WINDOW_HEIGHT - GRID_TOTAL_SIZE) / 2.0f;
+    
+    for (const auto& move : t_moves)
+    {
+        // Normalize score in 0-1 range
+        float normalizedScore = 0.5f;
+        if (maxScore != minScore)
+        {
+            normalizedScore = static_cast<float>(move.score - minScore) / (maxScore - minScore);
+        }
+        
+        //Red (bad) -> Yellow (medium) -> Green (good)
+        sf::Color vizColor;
+        if (normalizedScore < 0.5f)
+        {
+            // Red to Yellow
+            float t = normalizedScore * 2.0f;
+            vizColor = sf::Color(255, static_cast<std::uint8_t>(255 * t), 0, 120);
+        }
+        else
+        {
+            // Yellow to Green
+            float t = (normalizedScore - 0.5f) * 2.0f;
+            vizColor = sf::Color(static_cast<std::uint8_t>(255 * (1.0f - t)), 255, 0, 120);
+        }
+        
+        // Highlight source with a border
+        if (move.isSource)
+        {
+            m_visCells[move.fromRow][move.fromCol].setFillColor(sf::Color(255, 255, 0, 80));
+        }
+        
+        // Highlight destination cell
+        m_visCells[move.toRow][move.toCol].setFillColor(vizColor);
+        
+        // Add score label
+        if (m_aiScoreLabels[move.toRow][move.toCol] != nullptr)
+        {
+            m_aiScoreLabels[move.toRow][move.toCol]->setString(std::to_string(move.score));
+            
+            sf::Vector2f cellPos = m_cells[move.toRow][move.toCol].getPosition();
+            sf::FloatRect textBounds = m_aiScoreLabels[move.toRow][move.toCol]->getLocalBounds();
+            m_aiScoreLabels[move.toRow][move.toCol]->setOrigin(
+                sf::Vector2f(textBounds.position.x + textBounds.size.x / 2.0f, 
+                            textBounds.position.y + textBounds.size.y / 2.0f));
+            m_aiScoreLabels[move.toRow][move.toCol]->setPosition(
+                sf::Vector2f(cellPos.x + CELL_SIZE / 2.0f, cellPos.y + CELL_SIZE / 2.0f - 25.0f));
+        }
+    }
+}
+
+void Grid::clearVisuals()
+{
+    for (int row = 0; row < GRID_SIZE; ++row)
+    {
+        for (int col = 0; col < GRID_SIZE; ++col)
+        {
+            m_visCells[row][col].setFillColor(sf::Color(0, 0, 0, 0));
+            if (m_aiScoreLabels[row][col] != nullptr)
+            {
+                m_aiScoreLabels[row][col]->setString("");
+            }
+        }
     }
 }

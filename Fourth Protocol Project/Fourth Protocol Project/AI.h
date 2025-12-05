@@ -4,6 +4,7 @@
 #include "Grid.h"
 #include <vector>
 #include <utility>
+#include <functional>
 #include "Constants.h"
 
 // simple AI that now uses minimax
@@ -14,6 +15,9 @@ public:
     ~AI();
 
     void makeMove(Grid& t_grid);
+    
+	// Get already checked moves for visualization
+    std::vector<AIVisualisation> getLastCheckedMoves() const { return m_lastCheckedMoves; }
 
 private:
     struct Move//store move info
@@ -24,6 +28,9 @@ private:
         int toCol;
         int score;
     };
+    
+    std::vector<AIVisualisation> m_lastCheckedMoves;
+    
     // placement helpers
     void placePiece(Grid& t_grid);
     PieceType choosePieceType(Grid& t_grid, Player t_player);

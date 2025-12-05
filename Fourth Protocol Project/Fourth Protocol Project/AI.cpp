@@ -74,6 +74,9 @@ PieceType AI::choosePieceType(Grid& t_grid, Player t_player)
 
 std::pair<int, int> AI::choosePlacementPos(Grid& t_grid)
 {
+    // Clear previous visuals
+    m_lastCheckedMoves.clear();
+    
     // find all empty cells
     std::vector<std::pair<int, int>> emptyCells;
 
@@ -97,6 +100,16 @@ std::pair<int, int> AI::choosePlacementPos(Grid& t_grid)
     {
         if (doesMoveCauseWin(t_grid, cell.first, cell.second, opponent))
         {
+            // Add blocking move to visuals
+            AIVisualisation vis;
+            vis.fromRow = -1; // Placement has no source
+            vis.fromCol = -1;
+            vis.toRow = cell.first;
+            vis.toCol = cell.second;
+            vis.score = 9000; // High score for blocking
+            vis.isSource = false;
+            m_lastCheckedMoves.push_back(vis);
+            
             return cell; // place here to block
         }
     }
@@ -106,6 +119,16 @@ std::pair<int, int> AI::choosePlacementPos(Grid& t_grid)
     {
         if (doesMoveCauseWin(t_grid, cell.first, cell.second, t_grid.getCurrentPlayer()))
         {
+            // Add winning move to visuals
+            AIVisualisation vis;
+            vis.fromRow = -1;
+            vis.fromCol = -1;
+            vis.toRow = cell.first;
+            vis.toCol = cell.second;
+            vis.score = 10000; // Highest score for winning
+            vis.isSource = false;
+            m_lastCheckedMoves.push_back(vis);
+            
             return cell; // place aggressively
         }
     }
@@ -113,6 +136,7 @@ std::pair<int, int> AI::choosePlacementPos(Grid& t_grid)
     // Evaluate all empty positions and pick the best one
     int bestScore = -10000;
     std::vector<std::pair<int, int>> bestScores; // Store moves with similar scores
+    std::vector<std::pair<std::pair<int, int>, int>> scoredCells; // Store all checked cells with scores
 
     for (auto cell : emptyCells)
     {
@@ -151,6 +175,9 @@ std::pair<int, int> AI::choosePlacementPos(Grid& t_grid)
         // Add small random change to avoid the same start every time
         score += (rand() % 21) - 10;
         
+        // Store cell with score
+        scoredCells.push_back({cell, score});
+        
         if (score > bestScore)
         {
             bestScore = score;
@@ -161,6 +188,23 @@ std::pair<int, int> AI::choosePlacementPos(Grid& t_grid)
         {
             bestScores.push_back(cell);
         }
+    }
+    
+    // Add top scored cells to visuals
+    std::sort(scoredCells.begin(), scoredCells.end(), 
+        [](const auto& a, const auto& b) { return a.second > b.second; });
+    
+    int visualizeCount = std::min(static_cast<int>(scoredCells.size()), 15);
+    for (int i = 0; i < visualizeCount; ++i)
+    {
+        AIVisualisation vis;
+        vis.fromRow = -1; // Placement has no source piece
+        vis.fromCol = -1;
+        vis.toRow = scoredCells[i].first.first;
+        vis.toCol = scoredCells[i].first.second;
+        vis.score = scoredCells[i].second;
+        vis.isSource = false;
+        m_lastCheckedMoves.push_back(vis);
     }
 
     // Randomly pick from the best moves to add variety
@@ -264,6 +308,9 @@ std::vector<std::pair<int, int>> AI::getValidMoves(Grid& t_grid, int t_fromRow, 
 AI::Move AI::findBestMove(Grid& t_grid, Player t_player)
 {
     std::vector<Move> allMoves = getAllPossibleMoves(t_grid, t_player);//gets all possible moves
+    
+    // Clear previous visuals
+    m_lastCheckedMoves.clear();
 
     if (allMoves.empty())
     {
@@ -277,8 +324,13 @@ AI::Move AI::findBestMove(Grid& t_grid, Player t_player)
 
     std::vector<Move> topMoves; // Store moves with similar scores
     
-    for (Move& move : allMoves)//try all the moves
+    // keep visuals at top moves
+    int movesToVisualize = std::min(static_cast<int>(allMoves.size()), 15);
+    
+    for (int i = 0; i < movesToVisualize; ++i)//try top moves
     {
+        Move& move = allMoves[i];
+        
 		// keep what was in the target cell
         PieceType capturedType = t_grid.getPieceType(move.toRow, move.toCol);
         Player capturedOwner = t_grid.getCellOwner(move.toRow, move.toCol);
@@ -290,6 +342,17 @@ AI::Move AI::findBestMove(Grid& t_grid, Player t_player)
         if (t_grid.getGameState() == GameState::GAME_OVER && t_grid.getWinner() == t_player)
         {
             undoMove(t_grid, move, capturedType, capturedOwner);
+            
+            // Add winning move to visuals
+            AIVisualisation vis;
+            vis.fromRow = move.fromRow;
+            vis.fromCol = move.fromCol;
+            vis.toRow = move.toRow;
+            vis.toCol = move.toCol;
+            vis.score = WIN_SCORE;
+            vis.isSource = true;
+            m_lastCheckedMoves.push_back(vis);
+            
             return move;
         }
 
@@ -299,6 +362,16 @@ AI::Move AI::findBestMove(Grid& t_grid, Player t_player)
 
         // undo the move to check the next
         undoMove(t_grid, move, capturedType, capturedOwner);
+        
+        // Add to visuals
+        AIVisualisation vis;
+        vis.fromRow = move.fromRow;
+        vis.fromCol = move.fromCol;
+        vis.toRow = move.toRow;
+        vis.toCol = move.toCol;
+        vis.score = score;
+        vis.isSource = (i == 0); // Mark first as source
+        m_lastCheckedMoves.push_back(vis);
 
         if (score > bestMove.score)
         {
@@ -309,6 +382,37 @@ AI::Move AI::findBestMove(Grid& t_grid, Player t_player)
         else if (score == bestMove.score)
         {
             // If scores are equal, add to candidates for random selection
+            topMoves.push_back(move);
+        }
+    }
+    
+    // check remaining moves without visuals
+    for (int i = movesToVisualize; i < allMoves.size(); ++i)
+    {
+        Move& move = allMoves[i];
+        PieceType capturedType = t_grid.getPieceType(move.toRow, move.toCol);
+        Player capturedOwner = t_grid.getCellOwner(move.toRow, move.toCol);
+
+        testMove(t_grid, move);
+        
+        if (t_grid.getGameState() == GameState::GAME_OVER && t_grid.getWinner() == t_player)
+        {
+            undoMove(t_grid, move, capturedType, capturedOwner);
+            return move;
+        }
+
+        int score = minimax(t_grid, MAX_DEPTH - 1, false, t_player, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
+        move.score = score;
+        undoMove(t_grid, move, capturedType, capturedOwner);
+
+        if (score > bestMove.score)
+        {
+            bestMove = move;
+            topMoves.clear();
+            topMoves.push_back(move);
+        }
+        else if (score == bestMove.score)
+        {
             topMoves.push_back(move);
         }
     }
@@ -465,9 +569,9 @@ int AI::evaluateBoard(Grid& t_grid, Player t_aiPlayer)
             
             // Count adjacent owned pieces
             int adjacentFriendly = 0;
-            for (int dr = -1; dr <= 1; ++dr)
+            for (int dr = -1; dr <= 1; dr++)
             {
-                for (int dc = -1; dc <= 1; ++dc)
+                for (int dc = -1; dc <= 1; dc++)
                 {
                     if (dr == 0 && dc == 0) continue;
                     int newRow = row + dr;
@@ -541,9 +645,9 @@ void AI::orderMoves(std::vector<Move>& t_moves, Grid& t_grid, Player t_player)
         
         // Count adjacent friendly pieces
         int howManyBesideMe = 0;
-        for (int drow = -1; drow <= 1; ++drow)
+        for (int drow = -1; drow <= 1; drow++)
         {
-            for (int dcol = -1; dcol <= 1; ++dcol)
+            for (int dcol = -1; dcol <= 1; dcol++)
             {
                 if (drow == 0 && dcol == 0) continue;
                 int newRow = move.toRow + drow;

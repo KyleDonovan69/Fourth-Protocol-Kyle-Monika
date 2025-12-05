@@ -3,6 +3,7 @@
 
 #include <SFML/Graphics.hpp>
 #include <array>
+#include <functional>
 #include "Constants.h"
 
 enum class PieceType
@@ -33,6 +34,16 @@ struct Piece
     Player owner;
     sf::CircleShape shape;
 
+};
+
+struct AIVisualisation
+{
+    int fromRow;
+    int fromCol;
+    int toRow;
+    int toCol;
+    int score;
+    bool isSource;
 };
 
 class Grid
@@ -66,11 +77,23 @@ public:
 
     void setPiece(int t_row, int t_col, PieceType t_type, Player t_owner);//use these for testing moves first
     void clearCell(int t_row, int t_col);
+    
+    void autoSelectNextPiece(); // selects next piece
+    
+    void setVisuals(const std::vector<AIVisualisation>& t_moves);
+    void clearVisuals();
+    void enableVisuals(bool t_enabled) { m_isVisualOn = t_enabled; }
+    bool areVisualsOn() const { return m_isVisualOn; }
 
 private:
     sf::RectangleShape m_cells[GRID_SIZE][GRID_SIZE];
     Piece m_board[GRID_SIZE][GRID_SIZE];
     sf::RectangleShape m_highlightCells[GRID_SIZE][GRID_SIZE];
+    
+    // choice overlays
+    sf::RectangleShape m_visCells[GRID_SIZE][GRID_SIZE];
+    sf::Text* m_aiScoreLabels[GRID_SIZE][GRID_SIZE];
+    bool m_isVisualOn;
 
     sf::Font* m_font;//helps with sfml 3.0 text setup
     sf::Text* m_pieceLabels[GRID_SIZE][GRID_SIZE];
