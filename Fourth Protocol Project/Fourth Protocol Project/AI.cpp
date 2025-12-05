@@ -1,6 +1,7 @@
 #include "AI.h"
 #include <cstdlib>
 #include <ctime>
+#include <algorithm>
 
 AI::AI()
 {
@@ -42,19 +43,31 @@ void AI::placePiece(Grid& t_grid)
 
 PieceType AI::choosePieceType(Grid& t_grid, Player t_player)
 {
-    // just pick the first piece type it has available
-    if (t_grid.getRemainingPieces(t_player, PieceType::FROG) > 0)
+    // Count how many of each piece type we have
+    int frogsLeft = t_grid.getRemainingPieces(t_player, PieceType::FROG);
+    int snakesLeft = t_grid.getRemainingPieces(t_player, PieceType::SNAKE);
+    int donkeysLeft = t_grid.getRemainingPieces(t_player, PieceType::DONKEY);
+
+    // save frogs/snakes for later
+    int totalPieces = frogsLeft + snakesLeft + donkeysLeft;
+    if (totalPieces >= 3 && donkeysLeft > 0)
     {
-        return PieceType::FROG;
+        return PieceType::DONKEY; // Use donkeys first
     }
-    else if (t_grid.getRemainingPieces(t_player, PieceType::SNAKE) > 0)
+
+    // Prefer snakes for their diagonal movement
+    if (snakesLeft > 0 && totalPieces <= 2)
     {
         return PieceType::SNAKE;
     }
-    else if (t_grid.getRemainingPieces(t_player, PieceType::DONKEY) > 0)
-    {
+
+    // Use whatever's available
+    if (frogsLeft > 0)
+        return PieceType::FROG;
+    else if (snakesLeft > 0)
+        return PieceType::SNAKE;
+    else if (donkeysLeft > 0)
         return PieceType::DONKEY;
-    }
 
     return PieceType::FROG; // fallback
 }
@@ -72,22 +85,21 @@ std::pair<int, int> AI::choosePlacementPos(Grid& t_grid)
             {
                 emptyCells.push_back({ row, col });
             }
-
-
         }
     }
+    
     Player opponent = (t_grid.getCurrentPlayer() == Player::PLAYER_ONE)
         ? Player::PLAYER_TWO
         : Player::PLAYER_ONE;
 
     // BLOCK opponent winning placement
-        for (auto cell : emptyCells)
+    for (auto cell : emptyCells)
+    {
+        if (doesMoveCauseWin(t_grid, cell.first, cell.second, opponent))
         {
-            if (doesMoveCauseWin(t_grid, cell.first, cell.second, opponent))
-            {
-                return cell; // place here to block
-            }
+            return cell; // place here to block
         }
+    }
 
     // Try to form our own winning line
     for (auto cell : emptyCells)
@@ -98,13 +110,52 @@ std::pair<int, int> AI::choosePlacementPos(Grid& t_grid)
         }
     }
 
-    //  Otherwise choose center-ish
-    if (t_grid.isCellEmpty(2, 2))
-        return { 2,2 };
+    // Evaluate all empty positions and pick the best one
+    int bestScore = -10000;
+    std::pair<int, int> bestCell = emptyCells[0];
 
-    //fallback to random choice
-    int randomIndex = rand() % emptyCells.size();
-    return emptyCells[randomIndex];
+    for (auto cell : emptyCells)
+    {
+        int score = 0;
+        
+        // Prioritise center positions
+        int centerDist = abs(cell.first - 2) + abs(cell.second - 2);
+        score += (8 - centerDist) * 10;
+        
+        // Bonus point for positions near existing pieces
+        int adjacentFriendly = 0;
+        int adjacentEmpty = 0;
+        
+        for (int dr = -1; dr <= 1; ++dr)
+        {
+            for (int dc = -1; dc <= 1; ++dc)
+            {
+                if (dr == 0 && dc == 0) continue;
+                
+                int newRow = cell.first + dr;
+                int newCol = cell.second + dc;
+                
+                if (newRow >= 0 && newRow < GRID_SIZE && newCol >= 0 && newCol < GRID_SIZE)
+                {
+                    if (t_grid.getCellOwner(newRow, newCol) == t_grid.getCurrentPlayer())
+                        adjacentFriendly++;
+                    else if (t_grid.isCellEmpty(newRow, newCol))
+                        adjacentEmpty++;
+                }
+            }
+        }
+        
+        score += adjacentFriendly * 15; // Connect with our pieces
+        score += adjacentEmpty * 5;     // Keep flexibility
+        
+        if (score > bestScore)
+        {
+            bestScore = score;
+            bestCell = cell;
+        }
+    }
+
+    return bestCell;
 }
 
 
@@ -207,6 +258,8 @@ AI::Move AI::findBestMove(Grid& t_grid, Player t_player)
     Move bestMove = allMoves[0];//sets the best move as the first
     bestMove.score = std::numeric_limits<int>::min();
 
+    orderMoves(allMoves, t_grid, t_player); // Order moves before evaluation
+
     for (Move& move : allMoves)//try all the moves
     {
 		// keep what was in the target cell
@@ -264,6 +317,9 @@ int AI::minimax(Grid& t_grid, int t_depth, bool t_isMaximizing, Player t_aiPlaye
     {
         return evaluateBoard(t_grid, t_aiPlayer);
     }
+
+    // Order moves for better pruning
+    orderMoves(moves, t_grid, currentPlayer);
 
     if (t_isMaximizing)//go for the highest score for ai
     {
@@ -332,25 +388,80 @@ bool AI::doesMoveCauseWin(Grid& t_grid, int row, int col, Player player)
 
 int AI::evaluateBoard(Grid& t_grid, Player t_aiPlayer)
 {
-    Player opponent = (t_aiPlayer == Player::PLAYER_ONE) ? Player::PLAYER_TWO : Player::PLAYER_ONE;//figure out who is who
+    Player opponent = (t_aiPlayer == Player::PLAYER_ONE) ? Player::PLAYER_TWO : Player::PLAYER_ONE;
 
     int score = 0;
 
-    //if ai has a 4 in a row 
-    score += count4InARow(t_grid, t_aiPlayer) * 10000;
-    //if opponent has a 4 in a row loose score - minmax avoids at all costs
-    score -= count4InARow(t_grid, opponent) * 12000;
-
-
-    // checks which line can be made into 4 in a row
-    score += countPotentialWins(t_grid, t_aiPlayer) * 80;
-    score -= countPotentialWins(t_grid, opponent) * 60;  // Weight opponent threats higher to not lose
-
-    // Count 3-in-a-rows to set as a threat
-    score += count3InARow(t_grid, t_aiPlayer) * 800;
-    score -= count3InARow(t_grid, opponent) * 5000;//oppenent threats = bad >:(
-
-
+    // Check for immediate wins/losses first
+    int aiWins = count4InARow(t_grid, t_aiPlayer);
+    int oppWins = count4InARow(t_grid, opponent);
+    
+    if (aiWins > 0)
+        return WIN_SCORE; // We won!
+    if (oppWins > 0)
+        return LOSE_SCORE; // We lost
+    
+    // Count threats - 3 in a row means next move could win
+    int aiThreats = count3InARow(t_grid, t_aiPlayer);
+    int oppThreats = count3InARow(t_grid, opponent);
+    score += aiThreats * 800;  // creating threats
+    score -= oppThreats * 900; // blocking threats
+    
+    // Count potential 2 in a row wins
+    int aiPotential = countPotentialWins(t_grid, t_aiPlayer);
+    int oppPotential = countPotentialWins(t_grid, opponent);
+    score += aiPotential * 50;
+    score -= oppPotential * 40;
+    
+    // evaluate each piece's position
+    for (int row = 0; row < GRID_SIZE; ++row)
+    {
+        for (int col = 0; col < GRID_SIZE; ++col)
+        {
+            Player owner = t_grid.getCellOwner(row, col);
+            if (owner == Player::NONE)
+                continue;
+            
+            int pieceValue = 0;
+            
+			// Center control is more valuable
+            int centerDist = abs(row - 2) + abs(col - 2);
+            pieceValue += (8 - centerDist) * 8;
+            
+            // Extra bonus for actual center
+            if (row == 2 && col == 2)
+                pieceValue += 15;
+            
+            // Count adjacent owned pieces
+            int adjacentFriendly = 0;
+            for (int dr = -1; dr <= 1; ++dr)
+            {
+                for (int dc = -1; dc <= 1; ++dc)
+                {
+                    if (dr == 0 && dc == 0) continue;
+                    int newRow = row + dr;
+                    int newCol = col + dc;
+                    if (newRow >= 0 && newRow < GRID_SIZE && newCol >= 0 && newCol < GRID_SIZE)
+                    {
+                        if (t_grid.getCellOwner(newRow, newCol) == owner)
+                            adjacentFriendly++;
+                    }
+                }
+            }
+            pieceValue += adjacentFriendly * 12; //connected pieces = higher score
+            
+            if (owner == t_aiPlayer)
+                score += pieceValue;
+            else
+                score -= pieceValue;
+        }
+    }
+    
+    // check if more moves available
+    int aiMoves = getAllPossibleMoves(t_grid, t_aiPlayer).size();
+    int oppMoves = getAllPossibleMoves(t_grid, opponent).size();
+    score += (aiMoves - oppMoves) * 8; // Increased weight
+    
     return score;
 }
 
@@ -366,7 +477,7 @@ std::vector<AI::Move> AI::getAllPossibleMoves(Grid& t_grid, Player t_player)
             {
                 std::vector<std::pair<int, int>> validMoves = getValidMoves(t_grid, fromRow, fromCol);//checks all valid moves
 
-                for (const auto& movePair : validMoves)//and adds the, to a list
+                for (const auto& movePair : validMoves)//and adds them to a list
                 {
                     allMoves.push_back({ fromRow, fromCol, movePair.first, movePair.second, 0 });
                 }
@@ -375,6 +486,51 @@ std::vector<AI::Move> AI::getAllPossibleMoves(Grid& t_grid, Player t_player)
     }
 
     return allMoves;
+}
+
+void AI::orderMoves(std::vector<Move>& t_moves, Grid& t_grid, Player t_player)
+{
+    // Give each move a rough score for ordering
+    for (Move& move : t_moves)
+    {
+        int moveScore = 0;
+        
+        // Prioritize moves toward center
+        int centerDist = abs(move.toRow - 2) + abs(move.toCol - 2);
+        moveScore += (8 - centerDist) * 5;
+        
+        // Check if move stops opponent piece
+        if (t_grid.getCellOwner(move.toRow, move.toCol) != Player::NONE)
+        {
+            moveScore += 100; // higher score 
+        }
+        
+        // Bonus for creating threats
+        Player opponent = (t_player == Player::PLAYER_ONE) ? Player::PLAYER_TWO : Player::PLAYER_ONE;
+        
+        // Count adjacent friendly pieces
+        int howManyBesideMe = 0;
+        for (int drow = -1; drow <= 1; ++drow)
+        {
+            for (int dcol = -1; dcol <= 1; ++dcol)
+            {
+                if (drow == 0 && dcol == 0) continue;
+                int newRow = move.toRow + drow;
+                int newCol = move.toCol + dcol;
+                if (newRow >= 0 && newRow < GRID_SIZE && newCol >= 0 && newCol < GRID_SIZE)
+                {
+                    if (t_grid.getCellOwner(newRow, newCol) == t_player)
+                        howManyBesideMe++;
+                }
+            }
+        }
+        moveScore += howManyBesideMe * 10;
+        
+        move.score = moveScore;
+    }
+    
+    // Sort moves by score, highest first
+    std::sort(t_moves.begin(), t_moves.end(), [](const Move& a, const Move& b) { return a.score > b.score; });
 }
 
 void AI::testMove(Grid& t_grid, const Move& t_move)//this just tests moves, doesnt actually do them
@@ -461,7 +617,7 @@ int AI::count4InARow(Grid& t_grid, Player t_player)
                 t_grid.getCellOwner(row, col + 1) == t_player &&
                 t_grid.getCellOwner(row, col + 2) == t_player &&
                 t_grid.getCellOwner(row, col + 3) == t_player)
-                wins++;    //found a full horizontl line
+                wins++;    //found a full horizontal line
 
     // vertical
     for (int row = 0; row <= GRID_SIZE - 4; row++)

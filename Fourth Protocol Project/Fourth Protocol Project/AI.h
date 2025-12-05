@@ -36,6 +36,7 @@ private:
 
     //minimax moves
     std::vector<Move> getAllPossibleMoves(Grid& t_grid, Player t_player);
+	void orderMoves(std::vector<Move>& t_moves, Grid& t_grid, Player t_player); // Sort moves by likliness of winning
     std::vector<std::pair<int, int>> getValidMoves(Grid& t_grid, int t_fromRow, int t_fromCol);
     bool isCellEmpty(Grid& t_grid, int t_row, int t_col) const;
     Move findBestMove(Grid& t_grid, Player t_player);
@@ -50,7 +51,6 @@ private:
     int count4InARow(Grid& t_grid, Player t_player);
     int count3InARow(Grid& t_grid, Player t_player);//checks the board for rows of 3
     int countPotentialWins(Grid& t_grid, Player t_player);
-
 };
 
 #endif
