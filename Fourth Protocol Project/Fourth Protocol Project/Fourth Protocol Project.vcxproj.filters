@@ -72,4 +72,9 @@
       <Filter>Resource Files\AUDIO</Filter>
     </Media>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\README.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
+  </ItemGroup>
 </Project>

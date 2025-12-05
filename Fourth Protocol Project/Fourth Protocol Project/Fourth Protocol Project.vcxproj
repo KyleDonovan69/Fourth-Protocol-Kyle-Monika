@@ -44,6 +44,9 @@
   <ItemGroup>
     <Media Include="ASSETS\AUDIO\beep.wav" />
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\README.txt" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{cbb5ac8f-e739-4533-ab5e-b780e09d4570}</ProjectGuid>
